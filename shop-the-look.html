@@ -18,9 +18,20 @@
       <figure class="look__photo">
         <!-- Marco con la proporción de la foto: los puntos (en %) caen siempre sobre su prenda -->
         <div class="look__frame">
-          <img id="look-img" alt="" />
-          <!-- Un punto por prenda: selecciona esa prenda en el perchero -->
-          <div class="look__spots" id="look-spots"></div>
+          <!-- Capa ampliada: foto y puntos se encuadran juntos, así los puntos no se descolocan -->
+          <div class="look__layer">
+            <img id="look-img" alt="" />
+            <!-- Un punto por prenda: selecciona esa prenda en el perchero -->
+            <div class="look__spots" id="look-spots"></div>
+          </div>
+          <!-- Detalle de la prenda activa del perchero, abierto desde el principio -->
+          <aside class="look__detail" id="look-detail" aria-live="polite" aria-labelledby="look-detail-name">
+            <button class="detail__close" id="look-detail-close" type="button" aria-label="Cerrar detalle">×</button>
+            <p class="detail__brand" id="look-detail-brand"></p>
+            <h2 class="detail__name" id="look-detail-name"></h2>
+            <p class="detail__material" id="look-detail-material"></p>
+            <p class="detail__text" id="look-detail-text"></p>
+          </aside>
         </div>
       </figure>
       <section class="look__rack" id="look-rack" aria-label="Perchero con las prendas del look"></section>

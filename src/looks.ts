@@ -11,6 +11,7 @@ export interface Look {
   subtitle: string;
   image: string;       // foto del look: public/looks/...
   ratio: number;       // ancho / alto de la foto, para que los puntos caigan siempre en su sitio
+  focus: { x: number; y: number; zoom: number }; // encuadre: punto (en %) que queda centrado y ampliación
   placeholder: string; // ilustración provisional mientras no exista la foto
   alt: string;
   items: LookItem[];
@@ -22,6 +23,8 @@ export const looks: Look[] = [
     subtitle: 'Traje camel con camisa estampada y abrigo de paño azul al brazo.',
     image: '/looks/look-01.jpg',
     ratio: 686 / 1031,
+    // Acerca al modelo y lo sube: deja sitio abajo para el detalle de la prenda
+    focus: { x: 53, y: 52, zoom: 1.3 },
     placeholder: '/looks/look-01-placeholder.svg',
     alt: 'Modelo caminando bajo un paso elevado con traje camel, camisa estampada azul y un abrigo azul marino al brazo',
     items: [

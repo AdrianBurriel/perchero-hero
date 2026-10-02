@@ -23,6 +23,7 @@ export interface RackOptions {
   push?: number;     // cuánto se apartan las vecinas de la activa (m)
   initial?: number;  // índice seleccionado al empezar (por defecto, el del medio)
   onChange?: (index: number) => void; // prenda activa (seleccionada o en hover)
+  onOpen?: (index: number) => void;   // si se da, el detalle lo muestra la página y no el perchero
 }
 
 interface Item {
@@ -146,6 +147,7 @@ export class RackHero {
   openDetail(i: number, from: HTMLElement | null = null) {
     const d = this.items[i]?.data;
     if (!d) return;
+    if (this.opts.onOpen) return this.opts.onOpen(i);
     this.el.name.textContent = d.name;
     this.el.brand.textContent = d.brand;
     this.el.material.textContent = d.material;
