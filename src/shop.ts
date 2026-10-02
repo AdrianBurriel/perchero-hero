@@ -35,30 +35,17 @@ returnLook.addEventListener('click', () => {
   returnLook.hidden = true;
   garments.forEach((g, i) => setTimeout(() => removeFromCart(g.id), i * 160));
 });
-// Comprar el look: las prendas se pliegan y van a la cesta de una en una; la siguiente sale
-// cuando la anterior va por la mitad del vuelo (ya lejos del perchero), así no se cruzan
-const BUY_SPEED = 1.8;
+// Comprar el look: aparece una bolsa bajo el perchero, las prendas se pliegan y caen dentro
+// escalonadas y la bolsa vuela a la cesta (todas se suman al aterrizar)
 buy.addEventListener('click', () => {
   const left = garments.map((_, i) => i).filter((i) => !inCart(garments[i]!.id));
   if (!left.length) return;
   buy.disabled = true;
-  rack.setIdle(true); // las que esperan su turno se quedan quietas, de lado
-  let landed = 0;
-  const send = (n: number) => {
-    const i = left[n];
-    if (i === undefined) return;
-    rack
-      .sendToCart(i, cartTarget(), BUY_SPEED, () => send(n + 1))
-      .then((ok) => {
-        if (ok) addToCart(garments[i]!);
-        showDetail(current);
-        if (++landed === left.length) {
-          rack.setIdle(false);
-          updateBuy();
-        }
-      });
-  };
-  send(0);
+  rack.bagToCart(left, cartTarget()).then((sent) => {
+    for (const i of sent) addToCart(garments[i]!);
+    showDetail(current);
+    updateBuy();
+  });
 });
 
 /* ---------- Foto ---------- */

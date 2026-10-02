@@ -45,9 +45,9 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   (cámara ortográfica en px). La prenda real sale del perchero, pliega las mangas (piezas marcadas con
   `Kit.sleeve`) y la mitad inferior (deformación en el vertex shader) y vuela en arco. `RackHero.sendToCart(i, destino)` la lanza y deja la percha vacía;
   `RackHero.restore(i)` la vuelve a colgar (al quitarla de la cesta).
-  En Shop the look, «Comprar el look» manda las prendas de una en una: la siguiente sale cuando
-  la anterior va por la mitad del vuelo (`sendToCart(i, destino, BUY_SPEED, onHalfway)`) y
-  `setIdle(true)` deja quietas las que esperan.
+  En Shop the look, «Comprar el look» usa `RackHero.bagToCart(indices, destino)` (`bagAndFly` en el flyer):
+  aparece una bolsa de papel bajo el perchero, las prendas se pliegan y caen dentro escalonadas
+  (asomando por la boca) y la bolsa vuela a la cesta (~2 s; guion en `B`). Todas se suman al aterrizar.
   Con el look entero en la cesta aparece el enlace «Devolver al perchero» bajo «Look en la cesta».
   En la portada, con el perchero vacío, aparece el botón «Rellenar perchero» (`onRefill`).
   Ambos devuelven las prendas a sus perchas una tras otra y las sacan de la cesta (`removeFromCart`). Opción `gone` para empezar sin

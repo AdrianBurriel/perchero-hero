@@ -3,7 +3,7 @@ import type { GarmentData } from '../garments';
 import { createStage, createHanger, type Mount } from '../stage';
 import { buildGarment } from '../garment/builders';
 import { cardHTML, fillCard, bindCardCta } from '../ui/productCard';
-import { packAndFly, type Launch } from '../ui/flyer';
+import { bagAndFly, packAndFly, type Launch } from '../ui/flyer';
 
 /* Perchero interactivo reutilizable: crea su propio DOM (lienzo, flechas, detalle)
    dentro del contenedor, sin dependencias globales. Lo usan la portada y Shop the look. */
@@ -83,7 +83,6 @@ export class RackHero {
   private lastHitAt = 0;
   private returnFocus: HTMLElement | null = null;
   private detailIndex = 0;
-  private idle = false; // en pausa: ninguna prenda se pone de frente (p. ej. durante "Comprar el look")
   private readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   private readonly sideRad = THREE.MathUtils.degToRad(SIDE_ANGLE);
   private readonly push: number;
@@ -195,17 +194,26 @@ export class RackHero {
    * La prenda sale del perchero (queda la percha vacía), se pliega, se empaqueta y vuela hasta `to`.
    * Devuelve false si ya no estaba colgada.
    */
-  sendToCart(i: number, to: { x: number; y: number }, speed = 1, onHalfway?: () => void): Promise<boolean> {
+  sendToCart(i: number, to: { x: number; y: number }): Promise<boolean> {
     const out = this.detach(i);
-    if (!out) {
-      onHalfway?.();
-      return Promise.resolve(false);
-    }
-    if (this.reduceMotion) {
-      onHalfway?.();
-      return Promise.resolve(true);
-    }
-    return packAndFly(out.body, out.launch, to, speed, onHalfway).then(() => true);
+    if (!out) return Promise.resolve(false);
+    if (this.reduceMotion) return Promise.resolve(true);
+    return packAndFly(out.body, out.launch, to).then(() => true);
+  }
+
+  /**
+   * Varias prendas a la vez: se pliegan, caen en una bolsa que aparece bajo el perchero y la
+   * bolsa vuela hasta `to`. Devuelve las que estaban colgadas (las que llegan a la cesta).
+   */
+  bagToCart(is: number[], to: { x: number; y: number }): Promise<number[]> {
+    const out = is.flatMap((i) => {
+      const d = this.detach(i);
+      return d ? [{ i, ...d }] : [];
+    });
+    const sent = out.map((o) => o.i);
+    if (!out.length || this.reduceMotion) return Promise.resolve(sent);
+    const r = this.rect;
+    return bagAndFly(out, { x: r.left + r.width / 2, y: r.bottom }, to).then(() => sent);
   }
 
   /**
@@ -231,11 +239,6 @@ export class RackHero {
     if (this.items[this.selected] === it) this.select(this.selected, 1);
     this.render(); // la prenda desaparece del perchero en el mismo fotograma en que aparece en la capa
     return { body: it.body, launch };
-  }
-
-  /** Pausa el giro y el apartado: las colgadas se quedan de lado mientras otra animación trabaja. */
-  setIdle(idle: boolean) {
-    this.idle = idle;
   }
 
   /** Caja del lienzo del perchero en pantalla. */
@@ -362,7 +365,6 @@ export class RackHero {
 
   /** Prenda que está de frente; ninguna si la seleccionada ya no está colgada. */
   private get active(): Item | null {
-    if (this.idle) return null;
     const it = this.hovered ?? this.focused ?? this.items[this.selected]!;
     return it.gone ? null : it;
   }

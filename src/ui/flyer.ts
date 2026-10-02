@@ -113,6 +113,8 @@ interface Folding {
   holder: THREE.Group; // px en pantalla
   spin: THREE.Group;   // giro alrededor del centro de la prenda doblada
   cy: number;          // y (m) del centro de la prenda doblada respecto a su origen
+  width: number;       // ancho de la prenda doblada (m)
+  height: number;      // alto de la prenda doblada (m)
   /** Mangas y doblez según `ms` desde que empieza a plegarse. */
   fold(ms: number): void;
   /** Coloca el centro de la prenda doblada en (x, y) px con escala `s` px/m. */
@@ -194,6 +196,8 @@ function prepare(body: THREE.Group): Folding {
     holder,
     spin,
     cy,
+    width: bodyBox.max.x - bodyBox.min.x,
+    height: top - foldY,
     fold(ms) {
       const sl = easeInOut(phase(ms, T.sleeves));
       for (const hg of hinges) {
@@ -246,15 +250,14 @@ function arc(a: Point, b: Point, e: number, lift = ARC): Point {
  * Pliega `body` (la prenda, ya separada de su percha) y la lleva hasta `to`.
  * Al terminar la prenda queda como estaba (sin pliegues ni padre) para poder volver a colgarla.
  */
-export function packAndFly(body: THREE.Group, from: Launch, to: Point, speed = 1, onHalfway?: () => void): Promise<void> {
+export function packAndFly(body: THREE.Group, from: Launch, to: Point): Promise<void> {
   const f0 = prepare(body);
-  let halfway = false;
   const start = performance.now();
   const fromCenter = { x: from.x, y: from.y - f0.cy * from.scale }; // centro de la prenda doblada en pantalla
 
   return new Promise((resolve) => {
     run((now) => {
-      const ms = (now - start) * speed;
+      const ms = now - start;
       const lift = easeOut(phase(ms, T.lift));
       f0.spin.rotation.y = from.rotY * (1 - lift);
       let s = from.scale * (1 + 0.04 * lift);
@@ -267,16 +270,165 @@ export function packAndFly(body: THREE.Group, from: Launch, to: Point, speed = 1
         p = arc({ x: fromCenter.x, y: fromCenter.y - LIFT_PX }, to, e);
         s *= 1 - (1 - END_SCALE) * Math.pow(e, 1.5);
         f0.spin.rotation.set(-0.2 * Math.sin(Math.PI * f), e * Math.PI * 2, 0.25 * Math.sin(Math.PI * f));
-        // A mitad de vuelo ya está lejos del perchero: puede salir la siguiente
-        if (f >= 0.5 && !halfway) {
-          halfway = true;
-          onHalfway?.();
-        }
       }
       f0.place(p.x, p.y, s);
 
       if (f < 1) return true;
       f0.teardown();
+      resolve();
+      return false;
+    });
+  });
+}
+
+/* ---------- Comprar el look: todo a una bolsa y la bolsa a la cesta ---------- */
+
+// Guion de la bolsa (ms desde el clic)
+const B = {
+  appear: [0, 280],    // la bolsa sale bajo el perchero
+  start: 80,           // sale la primera prenda
+  stagger: 120,        // y cada siguiente, este tiempo después
+  travel: 620,         // de la percha a la boca de la bolsa (plegándose por el camino)
+  drop: 200,           // cae dentro
+  hop: 180,            // la bolsa da un saltito al recibir la última
+  fly: 700,            // vuelo a la cesta
+} as const;
+const BAG_FOLD_SPEED = 2;   // el plegado va el doble de rápido que en el vuelo individual
+const BAG_TILT = 0.18;      // giro de la bolsa para que se vea un costado
+const BAG_END_SCALE = 0.1;
+
+/** Bolsa de papel abierta (en px; origen en el centro de la base). */
+function makeBag(w: number, h: number, d: number) {
+  const bag = new THREE.Group();
+  const paper = new THREE.MeshStandardMaterial({ color: '#c8a27c', roughness: 0.92 });
+  const inside = new THREE.MeshStandardMaterial({ color: '#8f6f50', roughness: 1 });
+  const cord = new THREE.MeshStandardMaterial({ color: '#2a2622', roughness: 0.7 });
+  const t = Math.max(1, w * 0.012); // grosor del papel
+  // `inner`: cara de la caja que mira hacia dentro (+x, -x, +y, -y, +z, -z)
+  const panel = (sx: number, sy: number, sz: number, x: number, y: number, z: number, inner: number) => {
+    const mats = [paper, paper, paper, paper, paper, paper];
+    mats[inner] = inside;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mats);
+    m.position.set(x, y, z);
+    bag.add(m);
+  };
+  panel(w, h, t, 0, h / 2, d / 2, 5);         // delante
+  panel(w, h, t, 0, h / 2, -d / 2, 4);        // detrás
+  panel(t, h, d, -w / 2, h / 2, 0, 0);        // costados
+  panel(t, h, d, w / 2, h / 2, 0, 1);
+  panel(w, t, d, 0, t / 2, 0, 2);             // fondo
+  // Asas de cordón, delante y detrás
+  for (const z of [d / 2, -d / 2]) {
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(w * 0.2, Math.max(1.2, w * 0.016), 8, 24, Math.PI), cord);
+    handle.position.set(0, h, z);
+    bag.add(handle);
+  }
+  bag.rotation.y = BAG_TILT;
+  return {
+    group: bag,
+    dispose() {
+      bag.traverse((o) => o instanceof THREE.Mesh && o.geometry.dispose());
+      paper.dispose();
+      inside.dispose();
+      cord.dispose();
+    },
+  };
+}
+
+const easeOutBack = (t: number) => 1 + 2.2 * (t - 1) ** 3 + 1.2 * (t - 1) ** 2;
+
+/**
+ * Pliega varias prendas (ya separadas de sus perchas), las mete en una bolsa que aparece con
+ * la base en `at` y lleva la bolsa hasta `to`. Al terminar, las prendas quedan como estaban.
+ */
+export function bagAndFly(items: { body: THREE.Group; launch: Launch }[], at: Point, to: Point): Promise<void> {
+  const scale = items[0]!.launch.scale;
+  const w = Math.min(170, Math.max(90, 0.5 * scale));
+  const h = w * 1.05;
+  const d = w * 0.5;
+  const bag = makeBag(w, h, d);
+  ensure();
+  scene.add(bag.group);
+  const base = { x: at.x, y: at.y - 12 }; // base de la bolsa en pantalla
+  const mouth = base.y - h;               // borde superior
+
+  const n = items.length;
+  const parts = items.map(({ body, launch }, k) => {
+    const f = prepare(body);
+    const s = (w * 0.8) / f.width; // escala final: cabe a lo ancho
+    const hPx = f.height * s;
+    return {
+      f,
+      launch,
+      from: { x: launch.x, y: launch.y - f.cy * launch.scale },
+      s,
+      // Dentro de la bolsa: centradas y algo escalonadas; las de encima asoman un poco más
+      rest: { x: (k - (n - 1) / 2) * w * 0.04, y: mouth + hPx / 2 - 10 - k * Math.min(6, hPx * 0.08) },
+      z: (k - (n - 1) / 2) * Math.min(5, (d * 0.25) / Math.max(1, n - 1)),
+      t0: B.start + k * B.stagger,
+    };
+  });
+  const tIn = B.start + (n - 1) * B.stagger + B.travel + B.drop; // la última ya está dentro
+  const tFly = tIn + B.hop;
+  const start = performance.now();
+
+  return new Promise((resolve) => {
+    run((now) => {
+      const ms = now - start;
+
+      // Bolsa: aparece, salta al recibir la última y vuela a la cesta
+      let k = easeOutBack(phase(ms, B.appear)); // escala de la bolsa (1 = tamaño normal)
+      let c: Point = { x: base.x, y: base.y };  // base de la bolsa
+      let tilt = 0;
+      const hop = phase(ms, [tIn, tFly]);
+      c.y -= 10 * Math.sin(Math.PI * hop);
+      const fl = phase(ms, [tFly, tFly + B.fly]);
+      if (fl > 0) {
+        const e = easeInOut(fl);
+        c = arc(base, to, e, ARC * 0.6);
+        k = 1 - (1 - BAG_END_SCALE) * Math.pow(e, 1.4);
+        tilt = 0.3 * Math.sin(Math.PI * fl);
+      }
+      bag.group.position.set(c.x, -c.y, 0);
+      bag.group.scale.setScalar(Math.max(0.001, k));
+      bag.group.rotation.z = -tilt;
+
+      // Prendas: de la percha a la boca, caen dentro y luego viajan con la bolsa
+      const cos = Math.cos(tilt), sin = Math.sin(tilt);
+      for (const p of parts) {
+        const t = ms - p.t0;
+        p.f.fold(Math.max(0, t) * BAG_FOLD_SPEED);
+        const tr = easeInOut(clamp01(t / B.travel));
+        const dr = easeInOut(clamp01((t - B.travel) / B.drop));
+        p.f.spin.rotation.y = p.launch.rotY * (1 - easeOut(clamp01(t / 300)));
+        // Relativo a la base de la bolsa en reposo
+        const above = { x: p.rest.x, y: mouth - p.f.height * p.s * 0.5 - 18 };
+        const rel = {
+          x: above.x + (p.rest.x - above.x) * dr,
+          y: above.y + (p.rest.y - above.y) * dr,
+        };
+        let pos: Point;
+        let s: number;
+        if (tr < 1) {
+          const target = { x: base.x + rel.x, y: rel.y };
+          pos = arc(p.from, target, tr, 50);
+          s = p.launch.scale + (p.s - p.launch.scale) * tr;
+        } else {
+          // Sigue a la bolsa (saltito, vuelo y giro incluidos)
+          const dx = rel.x * k, dy = (rel.y - base.y) * k;
+          pos = { x: c.x + dx * cos - dy * sin, y: c.y + dx * sin + dy * cos };
+          s = p.s * k;
+        }
+        p.f.spin.rotation.z = -tilt;
+        p.f.place(pos.x, pos.y, s);
+        // Hasta llegar sobre la boca pasa por detrás de la bolsa (que queda delante del perchero)
+        p.f.holder.position.z = tr < 1 ? -2 * w : p.z * k;
+      }
+
+      if (fl < 1) return true;
+      for (const p of parts) p.f.teardown();
+      scene.remove(bag.group);
+      bag.dispose();
       resolve();
       return false;
     });
