@@ -3,6 +3,7 @@ import type { GarmentData } from '../garments';
 import { createStage, createHanger, type Mount } from '../stage';
 import { buildGarment } from '../garment/builders';
 import { cardHTML, fillCard, bindCardCta } from '../ui/productCard';
+import { fly } from '../ui/flyer';
 
 /* Perchero interactivo reutilizable: crea su propio DOM (lienzo, flechas, detalle)
    dentro del contenedor, sin dependencias globales. Lo usan la portada y Shop the look. */
@@ -25,12 +26,14 @@ export interface RackOptions {
   initial?: number;  // índice seleccionado al empezar (por defecto, el del medio)
   onChange?: (index: number) => void; // prenda activa (seleccionada o en hover)
   onOpen?: (index: number) => void;   // si se da, el detalle lo muestra la página y no el perchero
+  onAddToCart?: (index: number) => void; // botón "Añadir a la cesta" de la ficha del perchero
 }
 
 interface Item {
   data: GarmentData;
   slot: THREE.Group;   // posición en el raíl (se aparta)
   turner: THREE.Group; // giro de lado a frente
+  body: THREE.Group;   // la prenda (sin percha): se copia para el vuelo a la cesta
   baseX: number;
   turn: number; // 0 = de lado, 1 = de frente
   turnV: number;
@@ -68,6 +71,7 @@ export class RackHero {
   private accumulator = 0;
   private lastHitAt = 0;
   private returnFocus: HTMLElement | null = null;
+  private detailIndex = 0;
   private readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   private readonly sideRad = THREE.MathUtils.degToRad(SIDE_ANGLE);
   private readonly push: number;
@@ -93,7 +97,7 @@ export class RackHero {
     const detail = q<HTMLElement>('.detail');
     detail.innerHTML = cardHTML(nameId);
     detail.setAttribute('aria-labelledby', nameId);
-    bindCardCta(detail);
+    bindCardCta(detail, () => this.opts.onAddToCart?.(this.detailIndex));
     this.el = {
       canvas: q('.rack__stage'), list: q('.rack__list'), counter: q('.rack__counter'),
       captionName: q('.rack__caption-name'), captionBrand: q('.rack__caption-brand'),
@@ -145,10 +149,29 @@ export class RackHero {
     const d = this.items[i]?.data;
     if (!d) return;
     if (this.opts.onOpen) return this.opts.onOpen(i);
+    this.detailIndex = i;
     fillCard(this.el.detail, d, i, this.items.length);
     this.el.detail.hidden = false;
     this.returnFocus = from ?? (document.activeElement as HTMLElement | null);
     this.el.close.focus();
+  }
+
+  /** Lanza una copia 3D de la prenda desde el perchero hasta `to` (px de pantalla). */
+  flyTo(i: number, to: { x: number; y: number }): Promise<void> {
+    const it = this.items[i];
+    if (!it || this.reduceMotion) return Promise.resolve();
+    const { camera } = this.stage;
+    const center = new THREE.Box3().setFromObject(it.body).getCenter(new THREE.Vector3());
+    const ndc = center.clone().project(camera);
+    const r = this.el.canvas.getBoundingClientRect();
+    // px por metro a la profundidad de la prenda: la copia despega con el mismo tamaño en pantalla
+    const viewH = 2 * camera.position.distanceTo(center) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    return fly(it.body.clone(true), {
+      x: r.left + ((ndc.x + 1) / 2) * r.width,
+      y: r.top + ((1 - ndc.y) / 2) * r.height,
+      scale: r.height / viewH,
+      rotY: it.turner.rotation.y,
+    }, to);
   }
 
   private closeDetail() {
@@ -167,7 +190,7 @@ export class RackHero {
     slot.position.x = baseX;
     this.stage.scene.add(slot);
 
-    const item: Item = { data, slot, turner, baseX, turn: 0, turnV: 0, shift: 0, shiftV: 0 };
+    const item: Item = { data, slot, turner, body: garment.body, baseX, turn: 0, turnV: 0, shift: 0, shiftV: 0 };
     for (const m of garment.hit) {
       this.byMesh.set(m, item);
       this.hitMeshes.push(m);

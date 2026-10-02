@@ -183,7 +183,7 @@ button { font: inherit; color: inherit; }
   position: absolute;
   left: var(--gutter);
   bottom: var(--gutter);
-  width: min(380px, calc(100% - 32px));
+  width: min(420px, calc(100% - 32px));
   z-index: 2;
 }
 .detail[hidden] { display: none; }
@@ -232,8 +232,143 @@ button { font: inherit; color: inherit; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.card__actions { display: flex; }
-.card__cta { flex: 1; }
+.card__actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.card .btn { padding: 0 16px; letter-spacing: 0.1em; white-space: nowrap; }
+
+/* ---------- Cesta ---------- */
+.topbar__end { display: flex; align-items: center; gap: 22px; }
+.cart-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  margin: -10px -8px -10px 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.2s;
+}
+.cart-btn:hover { background: rgba(0, 0, 0, 0.06); }
+.cart-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; }
+.cart-btn__badge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 17px;
+  text-align: center;
+}
+.cart-btn__badge[hidden] { display: none; }
+/* Al aterrizar una prenda: el icono se hunde y rebota, el contador late */
+.cart-btn.is-bump svg { animation: bag-bump 0.55s var(--ease); }
+.cart-btn.is-bump .cart-btn__badge { animation: badge-pop 0.55s var(--ease); }
+@keyframes bag-bump {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.82) translateY(2px); }
+  65% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes badge-pop {
+  0%, 30% { transform: scale(1); }
+  60% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* Capa del vuelo 3D: encima de todo y sin capturar el ratón */
+.flyer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Panel lateral de la cesta */
+.drawer { position: fixed; inset: 0; z-index: 30; }
+.drawer[hidden] { display: none; }
+.drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 19, 17, 0.35);
+  opacity: 0;
+  transition: opacity 0.35s var(--ease);
+}
+.drawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  box-shadow: -20px 0 60px -20px rgba(0, 0, 0, 0.35);
+  transform: translateX(100%);
+  transition: transform 0.35s var(--ease);
+}
+.drawer.is-open .drawer__backdrop { opacity: 1; }
+.drawer.is-open .drawer__panel { transform: none; }
+.drawer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.drawer__title { font-family: var(--serif); font-weight: 400; font-size: 28px; line-height: 1; }
+.drawer__count { font-family: var(--sans); font-size: 13px; color: var(--muted); vertical-align: middle; }
+.drawer__close { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.drawer__close:hover { background: rgba(0, 0, 0, 0.06); }
+.drawer__close svg { width: 16px; height: 16px; fill: none; stroke: var(--ink); stroke-width: 1.4; }
+.drawer__lines { list-style: none; padding: 0 24px; margin: 0; overflow-y: auto; flex: 1; }
+.drawer__line { display: flex; justify-content: space-between; gap: 16px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.drawer__line-brand { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.drawer__line-name { font-family: var(--serif); font-size: 22px; line-height: 1.1; margin-top: 2px; }
+.drawer__remove {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.drawer__remove:hover { color: var(--ink); }
+.drawer__line-meta { text-align: right; }
+.drawer__line-price { font-weight: 500; font-variant-numeric: tabular-nums; }
+.drawer__line-qty { font-size: 12px; color: var(--muted); }
+.drawer__empty { padding: 32px 24px; color: var(--muted); }
+.drawer__empty[hidden], .drawer__foot[hidden] { display: none; }
+.drawer__foot { padding: 20px 24px 24px; border-top: 1px solid var(--line); display: grid; gap: 14px; }
+.drawer__subtotal { display: flex; justify-content: space-between; align-items: baseline; }
+.drawer__subtotal span { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.drawer__subtotal strong { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.drawer__checkout { width: 100%; height: 50px; }
+.drawer__note { font-size: 12px; color: var(--muted); text-align: center; }
 
 /* ---------- Aviso (acciones simuladas) ---------- */
 .toast {
@@ -429,7 +564,9 @@ button { font: inherit; color: inherit; }
   .card { height: 180px; padding: 14px 16px 16px; gap: 8px; grid-template-rows: auto auto 1fr auto; }
   .card__name { font-size: 22px; }
   .card__text { display: none; }
-  .card__cta { height: 40px; }
+  .card__add, .card__cta { height: 40px; }
+  .card__cta { padding: 0 12px; }
+  .topbar__end > .topbar__crumb { display: none; }
   .detail { top: 76px; bottom: auto; left: 16px; }
   .look__detail { left: 10px; right: 10px; bottom: 10px; }
 }

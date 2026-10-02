@@ -1,22 +1,28 @@
 import './style.css';
+const $ = <T extends HTMLElement>(s: string) => document.querySelector<T>(s)!;
 import { byId } from './garments';
 import { looks } from './looks';
 import { RackHero } from './rack/RackHero';
-import { cardHTML, fillCard, bindCardCta, formatPrice, toast } from './ui/productCard';
+import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
+import { mountCart, cartTarget, addToCart } from './ui/cart';
 
 /* Shop the look: foto del modelo con puntos sobre cada prenda + perchero con esas prendas.
    Puntos, perchero y detalle comparten la prenda activa. */
 
+mountCart($('#cart-slot'));
+
 const look = looks[0]!;
 const garments = look.items.map((it) => byId(it.id));
-const $ = <T extends HTMLElement>(s: string) => document.querySelector<T>(s)!;
 
 $('#look-eyebrow').textContent = `Shop the look · 01`;
 $('#look-title').textContent = look.title;
 $('#look-subtitle').textContent = look.subtitle;
 $('#look-count').textContent = `${garments.length} prendas`;
 $('#look-total').textContent = formatPrice(garments.reduce((s, g) => s + g.price, 0));
-$('#buy-look').addEventListener('click', () => toast(`Simulación: se añadirían ${garments.length} prendas a la cesta`));
+// Comprar el look: las prendas vuelan una tras otra a la cesta
+$('#buy-look').addEventListener('click', () => {
+  garments.forEach((g, i) => setTimeout(() => rack.flyTo(i, cartTarget()).then(() => addToCart(g)), i * 160));
+});
 
 /* ---------- Foto ---------- */
 const img = $<HTMLImageElement>('#look-img');
@@ -34,7 +40,7 @@ Object.assign($('.look__layer').style, { width: `${zoom * 100}%`, height: `${zoo
 /* ---------- Detalle sobre la foto ---------- */
 const detail = $('#look-detail');
 detail.innerHTML = cardHTML('look-detail-name');
-bindCardCta(detail);
+bindCardCta(detail, () => rack.flyTo(current, cartTarget()).then(() => addToCart(garments[current]!)));
 let detailOpen = true;
 let current = 0;
 

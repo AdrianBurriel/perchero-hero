@@ -37,8 +37,12 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - `src/garment/pillow.ts`: malla "acolchada" a partir de una silueta 2D (dos caras cosidas en el canto).
 - `src/garment/builders.ts`: patrones y montaje de cada tipo de prenda (mangas, cuellos, botones…).
 - `src/garment/fabrics.ts`: texturas procedurales (color + normal map) por tipo de tejido.
-- `src/ui/productCard.ts`: ficha de producto común (altura fija, precio, botón «Ver producto» simulado)
+- `src/ui/productCard.ts`: ficha de producto común (altura fija, precio, «Añadir a la cesta» y «Ver producto» simulado)
   y `toast()` para acciones simuladas (ver ficha, comprar el look).
+- `src/ui/cart.ts`: cesta simulada (icono con contador en la barra superior + panel lateral), en
+  localStorage para compartirla entre páginas. `mountCart(slot)`, `cartTarget()`, `addToCart(prenda)`.
+- `src/ui/flyer.ts`: vuelo 3D a la cesta en una capa WebGL transparente a pantalla completa
+  (cámara ortográfica en px). `RackHero.flyTo(i, destino)` copia la prenda y la lanza en arco.
 - `src/style.css`: sistema visual común. Tipografías Instrument Serif (títulos) e Inter (texto) desde Google Fonts.
 - `src/garments.ts`: catálogo ficticio con `id` y `price` (€) (`garments` = portada, `lookGarments` = prendas de los looks;
   `byId(id)` busca en ambos).

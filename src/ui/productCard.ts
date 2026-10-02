@@ -2,8 +2,9 @@ import type { GarmentData } from '../garments';
 
 /* Ficha breve de producto: misma estructura y altura en la portada y en Shop the look. */
 
-const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-export const formatPrice = (n: number) => euro.format(n);
+// es-ES no agrupa los miles con 4 cifras (1291 €); de-DE usa el mismo formato pero siempre agrupa (1.291 €)
+const thousands = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 0 });
+export const formatPrice = (n: number) => `${thousands.format(n)} €`;
 const pad = (n: number) => String(n).padStart(2, '0');
 
 const ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>';
@@ -25,7 +26,8 @@ export const cardHTML = (nameId: string) => `
     </div>
     <p class="card__text"></p>
     <div class="card__actions">
-      <button class="btn btn--dark card__cta" type="button">Ver producto ${ARROW}</button>
+      <button class="btn btn--dark card__add" type="button">Añadir a la cesta</button>
+      <button class="btn card__cta" type="button">Ver producto ${ARROW}</button>
     </div>
   </div>`;
 
@@ -57,8 +59,9 @@ export function toast(message: string) {
   toastTimer = window.setTimeout(() => toastEl?.classList.remove('is-visible'), 2600);
 }
 
-/** Botón "Ver producto": simulado, solo avisa de a dónde llevaría. */
-export function bindCardCta(root: HTMLElement) {
+/** Botones de la ficha: "Añadir a la cesta" llama a `onAdd`; "Ver producto" es simulado y solo avisa. */
+export function bindCardCta(root: HTMLElement, onAdd: () => void) {
+  root.querySelector<HTMLElement>('.card__add')!.addEventListener('click', onAdd);
   root.querySelector<HTMLElement>('.card__cta')!.addEventListener('click', (e) => {
     const name = (e.currentTarget as HTMLElement).dataset.product ?? '';
     toast(`Simulación: aquí se abriría la ficha de «${name}»`);
