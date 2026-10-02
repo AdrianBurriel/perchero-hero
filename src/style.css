@@ -197,7 +197,16 @@ body {
 .look__spot.is-active::after { inset: 7px; }
 .look__spot:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
-.look__rack { grid-area: rack; min-height: 0; border-radius: 4px; --detail-top: 16px; }
+.look__rack { grid-area: rack; min-height: 0; --detail-top: 16px; }
+/* Sin fondo propio: las sombras se desvanecen hacia los bordes para que no se vea el recuadro */
+.look__rack .rack__stage {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, #000 80%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to bottom, #000 80%, transparent);
+  mask-composite: intersect;
+}
 
 @media (max-width: 900px) {
   .look {
@@ -207,7 +216,7 @@ body {
     height: auto;
   }
   .look__photo { aspect-ratio: 4 / 5; }
-  .look__rack { height: 75svh; min-height: 420px; }
+  .look__rack { height: clamp(380px, 55svh, 520px); min-height: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

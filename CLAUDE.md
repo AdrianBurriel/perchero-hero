@@ -20,13 +20,13 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 
 ## Páginas
 - `index.html` → `src/main.ts`: portada con perchero de pared y todo el catálogo. Enlaza a Shop the look.
-- `shop-the-look.html` → `src/shop.ts`: foto del modelo con puntos por prenda + burro de suelo con las
-  prendas del look. Puntos y burro comparten la prenda activa (hover = previsualizar, clic = detalle).
+- `shop-the-look.html` → `src/shop.ts`: foto del modelo con puntos por prenda + el mismo perchero de pared
+  con las prendas del look, sin fondo propio (`transparent`: solo sombras sobre el fondo de la página). Puntos y burro comparten la prenda activa (hover = previsualizar, clic = detalle).
 - Multipágina declarada en `vite.config.ts` (`build.rollupOptions.input`).
 
 ## Estructura
 - `src/rack/RackHero.ts`: clase `RackHero(container, prendas, opciones)` reutilizable y sin globales.
-  Crea su DOM (lienzo, flechas, contador, detalle). Opciones: `mount` (`'wall'` | `'floor'`),
+  Crea su DOM (lienzo, flechas, contador, detalle). Opciones: `mount` (`'wall'` | `'floor'` = burro), `transparent`,
   `spacing`, `push`, `initial`, `onChange`. Métodos públicos: `select(i)`, `preview(i|null)`, `openDetail(i)`.
 - `src/stage.ts`: renderer, cámara, luces, pared, raíl de pared o burro (postes, base, ruedas, suelo) y percha.
 - `src/garment/pillow.ts`: malla "acolchada" a partir de una silueta 2D (dos caras cosidas en el canto).

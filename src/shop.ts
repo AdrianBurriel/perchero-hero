@@ -38,7 +38,8 @@ const buttons = look.items.map((it, i) => {
 });
 
 const rack = new RackHero(document.querySelector<HTMLElement>('#look-rack')!, garments, {
-  mount: 'floor',
+  mount: 'wall', // mismo perchero que la portada
+  transparent: true,
   spacing: 0.16,
   push: 0.26,
   initial: 0,

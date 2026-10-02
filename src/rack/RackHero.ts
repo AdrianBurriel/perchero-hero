@@ -18,6 +18,7 @@ const RAIL_MARGIN = 0.24; // raíl sobrante a cada lado de la última prenda apa
 
 export interface RackOptions {
   mount?: Mount;     // 'wall' = raíl de pared, 'floor' = burro con ruedas
+  transparent?: boolean; // sin fondo propio: se integra en el fondo de la página
   spacing?: number;  // separación entre perchas (m)
   push?: number;     // cuánto se apartan las vecinas de la activa (m)
   initial?: number;  // índice seleccionado al empezar (por defecto, el del medio)
@@ -103,7 +104,7 @@ export class RackHero {
     this.el.detail.setAttribute('aria-labelledby', nameId);
 
     const railHalf = ((garments.length - 1) / 2) * spacing + this.push + RAIL_MARGIN;
-    this.stage = createStage(this.el.canvas, { mount: opts.mount ?? 'wall', railHalf });
+    this.stage = createStage(this.el.canvas, { mount: opts.mount ?? 'wall', railHalf, transparent: opts.transparent });
 
     this.items = garments.map((data, i) => this.mountItem(data, i, (i - (garments.length - 1) / 2) * spacing));
     this.bindEvents();

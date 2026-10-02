@@ -10,6 +10,7 @@ export type Mount = 'wall' | 'floor';
 export interface StageOptions {
   mount: Mount;
   railHalf: number; // semilongitud del raíl (m)
+  transparent?: boolean; // sin fondo: solo las sombras sobre la pared, encima del fondo de la página
 }
 
 const FOV = 26;
@@ -45,8 +46,8 @@ function plasterPlane(w: number, h: number, color: string) {
   return m;
 }
 
-export function createStage(canvas: HTMLCanvasElement, { mount, railHalf }: StageOptions) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transparent = false }: StageOptions) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: transparent });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.95;
@@ -54,7 +55,7 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf }: Stag
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#d6d0c4');
+  if (!transparent) scene.background = new THREE.Color('#d6d0c4');
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.45;
@@ -80,7 +81,10 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf }: Stag
   scene.add(fill);
 
   // Pared grande: cubre el fondo también en pantallas estrechas (cámara lejos)
-  const wall = plasterPlane(40, 24, '#d9d3c7');
+  const wall = transparent
+    ? new THREE.Mesh(new THREE.PlaneGeometry(40, 24), new THREE.ShadowMaterial({ opacity: 0.16 }))
+    : plasterPlane(40, 24, '#d9d3c7');
+  wall.receiveShadow = true;
   wall.position.set(0, -0.6, wallZ);
   scene.add(wall);
 
