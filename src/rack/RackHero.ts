@@ -17,6 +17,12 @@ const PUSH_FALLOFF = 0.3; // las lejanas se apartan menos: el perchero se compri
 const HOVER_GRACE = 180; // ms sin tocar prenda antes de soltar la activa (evita parpadeo en huecos)
 const RAIL_MARGIN = 0.24; // raíl sobrante a cada lado de la última prenda apartada (m)
 
+/* Entrada: las prendas bajan de una en una (de izquierda a derecha) y se enganchan al raíl de lado */
+const ENTER_DELAY = 0.3;     // s antes de la primera prenda
+const ENTER_STAGGER = 0.09;  // s entre una prenda y la siguiente
+const ENTER_DURATION = 0.85; // s que tarda cada prenda en bajar
+const ENTER_DROP = 1.3;      // m por encima del raíl desde donde bajan (fuera de cuadro)
+
 export interface RackOptions {
   mount?: Mount;     // 'wall' = raíl de pared, 'floor' = burro con ruedas
   transparent?: boolean; // sin fondo propio: se integra en el fondo de la página
@@ -63,7 +69,8 @@ export class RackHero {
   private focused: Item | null = null;
   private selected: number;
   private lastActive = -1;
-  private running = true;
+  private running = false; // lo arranca el IntersectionObserver al verse en pantalla
+  private enterClock = 0;   // s transcurridos de la entrada
   private prev = performance.now();
   private accumulator = 0;
   private lastHitAt = 0;
@@ -104,9 +111,10 @@ export class RackHero {
     this.stage = createStage(this.el.canvas, { mount: opts.mount ?? 'wall', railHalf, transparent: opts.transparent });
 
     this.items = garments.map((data, i) => this.mountItem(data, i, (i - (garments.length - 1) / 2) * spacing));
+    if (this.reduceMotion) this.enterClock = Infinity;
     this.bindEvents();
     this.select(this.selected);
-    this.step(0, true); // arranca ya en su sitio: la seleccionada de frente, sin animación inicial
+    this.step(0, true); // estado inicial sin animar (con la entrada: todas de lado, aún sin colgar)
 
     // Tamaño del lienzo ligado a su caja: sin saltos al redimensionar
     new ResizeObserver(([entry]) => {
@@ -125,7 +133,6 @@ export class RackHero {
         this.running = false;
       }
     }).observe(this.el.canvas);
-    requestAnimationFrame(this.frame);
   }
 
   /** Selecciona una prenda (la pone de frente). Público para enlazarlo con otros controles. */
@@ -232,19 +239,25 @@ export class RackHero {
     });
   }
 
+  /** Mientras dura la entrada no hay prenda activa: ni giro ni apartado. */
+  private get entering() {
+    return this.enterClock < ENTER_DELAY + (this.items.length - 1) * ENTER_STAGGER + ENTER_DURATION;
+  }
+
   private get active(): Item {
     return this.hovered ?? this.focused ?? this.items[this.selected]!;
   }
 
   /* ---------- Muelles de giro y apartado ---------- */
   private step(dt: number, snap = false) {
-    const activeIndex = this.items.indexOf(this.active);
+    this.enterClock += dt;
+    const activeIndex = this.entering ? -1 : this.items.indexOf(this.active);
     this.items.forEach((it, i) => {
       // Muelle del giro hacia su objetivo (de frente si está activa)
       const target = i === activeIndex ? 1 : 0;
       // Las vecinas se apartan a cada lado de la activa, menos cuanto más lejos
       const d = i - activeIndex;
-      const shiftTarget = d === 0 ? 0 : (Math.sign(d) * this.push) / (1 + PUSH_FALLOFF * (Math.abs(d) - 1));
+      const shiftTarget = activeIndex < 0 || d === 0 ? 0 : (Math.sign(d) * this.push) / (1 + PUSH_FALLOFF * (Math.abs(d) - 1));
       if (this.reduceMotion || snap) {
         it.turn = target;
         it.turnV = 0;
@@ -260,10 +273,13 @@ export class RackHero {
   }
 
   private render() {
-    for (const it of this.items) {
+    this.items.forEach((it, i) => {
+      // Bajada de entrada con frenada suave (ease-out cúbico) hasta engancharse al raíl
+      const t = Math.min(1, Math.max(0, (this.enterClock - ENTER_DELAY - i * ENTER_STAGGER) / ENTER_DURATION));
+      it.slot.position.y = (1 - t) ** 3 * ENTER_DROP;
       it.slot.position.x = it.baseX + it.shift;
       it.turner.rotation.y = (1 - it.turn) * this.sideRad;
-    }
+    });
     const active = this.active;
     if (this.el.captionName.textContent !== active.data.name) {
       this.el.captionName.textContent = active.data.name;
