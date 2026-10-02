@@ -1,6 +1,8 @@
+import { clearCart } from './cart';
+
 /* Selector Perchero | Shop the look. Una pastilla marca la sección actual:
    al elegir la otra se desliza hasta ella antes de navegar, y en la página nueva
-   termina el gesto saliendo desde la opción anterior. */
+   termina el gesto saliendo desde la opción anterior. Cambiar de sección vacía la cesta. */
 
 const KEY = 'switch-from';
 const LEAVE_MS = 320; // lo que tarda la pastilla en llegar antes de cambiar de página
@@ -41,11 +43,7 @@ export function mountSwitch(root: HTMLElement) {
     a.addEventListener('click', (e) => {
       if (i === current || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
       e.preventDefault();
-      try {
-        sessionStorage.setItem(KEY, String(current));
-      } catch {
-        /* sin sessionStorage */
-      }
+      leaveSection(current);
       place(i);
       root.classList.add('is-leaving');
       setTimeout(() => (location.href = a.href), reduce ? 0 : LEAVE_MS);
@@ -58,4 +56,15 @@ export function mountSwitch(root: HTMLElement) {
   // Las fuentes web cambian el ancho de las opciones al cargar
   document.fonts?.ready.then(() => place(root.classList.contains('is-leaving') ? opts.findIndex((o) => o.classList.contains('is-on')) : current));
   addEventListener('resize', () => place(current));
+}
+
+/** Antes de salir hacia la otra sección: vacía la cesta y recuerda desde qué opción se sale
+    (la pastilla de la página nueva saldrá desde ahí). */
+export function leaveSection(from: number) {
+  clearCart();
+  try {
+    sessionStorage.setItem(KEY, String(from));
+  } catch {
+    /* sin sessionStorage */
+  }
 }

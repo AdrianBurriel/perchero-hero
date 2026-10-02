@@ -83,6 +83,13 @@ function render() {
   drawer.querySelector('.drawer__count')!.textContent = n ? `(${n})` : '';
 }
 
+/** Vacía la cesta sin devolver nada a las perchas (se usa al cambiar de sección: la otra
+    página empieza con su perchero lleno). */
+export function clearCart() {
+  lines = [];
+  save(lines);
+}
+
 /** Saca una prenda de la cesta (vuelve a su percha a través de onCartRemove). */
 export const removeFromCart = (id: string) => remove(id);
 

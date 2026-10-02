@@ -48,13 +48,20 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   En Shop the look, «Comprar el look» usa `RackHero.bagToCart(indices, destino)` (`bagAndFly` en el flyer):
   aparece una bolsa de papel bajo el perchero, las prendas se pliegan y caen dentro escalonadas
   (asomando por la boca) y la bolsa vuela a la cesta (~2 s; guion en `B`). Todas se suman al aterrizar.
-  Con el look entero en la cesta aparece el enlace «Devolver al perchero» bajo «Look en la cesta».
+  Con el look entero en la cesta aparece el enlace «Devolver al perchero» bajo «Look en la cesta»
+  y, bajo el perchero vacío, «Ver otros percheros» (lleva a la portada).
   En la portada, con el perchero vacío, aparece el botón «Rellenar perchero» (`onRefill`).
   Ambos devuelven las prendas a sus perchas una tras otra y las sacan de la cesta (`removeFromCart`). Opción `gone` para empezar sin
   las prendas que ya están en la cesta.
 - `src/ui/switcher.ts`: selector Perchero | Shop the look en el centro de la barra superior. La pastilla
   se desliza a la opción elegida antes de navegar y en la página nueva sale desde la anterior
-  (sessionStorage); en hover se estira hacia la opción inactiva.
+  (sessionStorage); en hover se estira hacia la opción inactiva. Cambiar de sección (selector o
+  «Ver otros percheros», `leaveSection`) vacía la cesta (`clearCart`): cada página empieza con su perchero lleno.
+- `src/ui/loader.ts`: pantalla de carga (marcado `#loader` en cada HTML, con fondo inline para el primer pintado).
+  Fondo oscuro, se abre un hoyo de green (radio en un shader del suelo) y sale una percha 3D (`createHanger`)
+  con muelles estilo Framer Motion (`Spring`). `startLoader()` → `await loader.intro` (la percha queda quieta y
+  la página monta su `RackHero`, que bloquea el hilo un instante) → `loader.finish()` sale cuando hay `load`,
+  fuentes y primer fotograma, nunca antes de `MIN_MS` (1,5 s). Necesita `build.target: 'es2022'` (await en el nivel superior).
 - `src/ui/stock.ts`: contador «9 / 11 prendas en percha» (colgadas / perchas) de la barra superior, alimentado por
   `RackHero` (`onStock`). Al cambiar, el número rueda y flota un «−1»/«+1».
 - `src/style.css`: sistema visual común. Tipografías Instrument Serif (títulos) e Inter (texto) desde Google Fonts.

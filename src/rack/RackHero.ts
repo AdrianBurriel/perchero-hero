@@ -262,11 +262,9 @@ export class RackHero {
   private notifyStock() {
     const hanging = this.items.filter((it) => !it.gone).length;
     this.opts.onStock?.(hanging, this.items.length);
-    // Perchero vacío: aparece «Rellenar perchero» donde va el nombre de la prenda
-    const refill = this.container.querySelector<HTMLButtonElement>('.rack__refill')!;
-    const empty = hanging === 0 && !!this.opts.onRefill;
-    if (empty === !refill.hidden) return;
-    refill.hidden = !empty;
+    // Perchero vacío: sin nombre de prenda; en su sitio, «Rellenar perchero» (si hay onRefill)
+    const empty = hanging === 0;
+    this.container.querySelector<HTMLButtonElement>('.rack__refill')!.hidden = !(empty && this.opts.onRefill);
     this.container.classList.toggle('is-empty', empty);
   }
 

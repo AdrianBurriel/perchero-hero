@@ -5,8 +5,11 @@ import { looks } from './looks';
 import { RackHero } from './rack/RackHero';
 import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove, removeFromCart } from './ui/cart';
-import { mountSwitch } from './ui/switcher';
+import { mountSwitch, leaveSection } from './ui/switcher';
 import { mountStock } from './ui/stock';
+import { startLoader } from './ui/loader';
+
+const loader = startLoader();
 
 /* Shop the look: foto del modelo con puntos sobre cada prenda + perchero con esas prendas.
    Puntos, perchero y detalle comparten la prenda activa. */
@@ -23,12 +26,20 @@ $('#look-subtitle').textContent = look.subtitle;
 $('#look-count').textContent = `${garments.length} prendas`;
 $('#look-total').textContent = formatPrice(garments.reduce((s, g) => s + g.price, 0));
 const buy = $<HTMLButtonElement>('#buy-look');
+// Con el look entero en la cesta, bajo el perchero vacío: enlace a la portada (otra sección: vacía la cesta)
+const more = document.createElement('a');
+more.className = 'rack__more';
+more.href = '/';
+more.hidden = true;
+more.innerHTML = 'Ver otros percheros <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>';
+more.addEventListener('click', () => leaveSection(1));
 const returnLook = $<HTMLButtonElement>('#return-look');
 const updateBuy = () => {
   const all = garments.every((g) => inCart(g.id));
   buy.disabled = all;
   buy.textContent = all ? 'Look en la cesta' : 'Comprar el look';
   returnLook.hidden = !all;
+  more.hidden = !all;
 };
 // Devolver al perchero: cada prenda vuelve a su percha (y sale de la cesta), una tras otra
 returnLook.addEventListener('click', () => {
@@ -116,6 +127,8 @@ const buttons = look.items.map((it, i) => {
   return b;
 });
 
+// El perchero se monta cuando la percha de la carga ya está quieta (el montaje bloquea un instante)
+await loader.intro;
 const rack = new RackHero($('#look-rack'), garments, {
   mount: 'wall', // mismo perchero que la portada
   transparent: true,
@@ -136,6 +149,7 @@ const rack = new RackHero($('#look-rack'), garments, {
   gone: (i) => inCart(garments[i]!.id),
   onStock: mountStock($('#stock'), 'Look 01 · '),
 });
+$('#look-rack').append(more);
 // Quitar de la cesta la devuelve a su percha
 onCartRemove((id) => {
   rack.restore(garments.findIndex((g) => g.id === id));
@@ -145,3 +159,4 @@ onCartRemove((id) => {
 // Estado inicial: aunque no quede ninguna colgada, la ficha muestra una prenda
 showDetail(current);
 updateBuy();
+loader.finish();
