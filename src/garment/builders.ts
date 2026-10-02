@@ -7,8 +7,6 @@ import type { GarmentData } from '../garments';
    (cuello, tapeta, bolsillos, puños) apoyadas sobre la superficie de la pieza de debajo.
    Coordenadas en metros; y = 0 es el raíl, la percha queda por debajo. */
 
-export const SHOULDER_Y = -0.1; // pivote de la tela para el retraso respecto a la percha
-
 export interface BuiltGarment {
   body: THREE.Group;
   hit: THREE.Mesh[];

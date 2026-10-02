@@ -26,15 +26,12 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - `src/garment/fabrics.ts`: texturas procedurales (color + normal map) por tipo de tejido.
 - `src/garments.ts`: catálogo ficticio (nombre, marca, material, tejido, colores).
 
-## Modelo físico (`src/main.ts`)
-Cada percha es un péndulo amortiguado con pivote en el raíl:
-`α = -G·sin(θ) - c·ω + k·(θ₋₁ + θ₊₁ - 2θ) + viento` (coupling actualmente a 0).
-- Integración semi-implícita de Euler con paso fijo (1/120 s) y acumulador.
-- El puntero transfiere impulso `ω += vx · GAIN` a la prenda bajo el cursor (raycast).
-- Segundo muelle: la tela se retrasa respecto a la percha (cizalla en x bajo los hombros).
-- En reposo las prendas están de lado (`SIDE_ANGLE`); la activa gira de frente y las vecinas se apartan
-  (`PUSH`, `PUSH_FALLOFF`), con muelle lento sin rebote (`TURN_STIFF`, `TURN_DAMP`).
-- Parámetros al inicio de `main.ts`; afinar a ojo.
+## Movimiento (`src/main.ts`)
+- Sin balanceo (como la referencia): las prendas están quietas y de lado (`SIDE_ANGLE`).
+- La prenda activa (hover por raycast o foco con Tab) gira de frente y las vecinas se apartan
+  (`PUSH`, `PUSH_FALLOFF`), con muelles críticamente amortiguados (`TURN_STIFF`, `TURN_DAMP`).
+- Paso fijo de 1/120 s con acumulador. Parámetros al inicio de `main.ts`.
+- El péndulo con viento y retraso de tela existió en commits anteriores (ver historial de git).
 
 ## Tareas sugeridas (en orden)
 1. `npm install && npm run dev`; comprobar que el balanceo se siente natural. Afinar constantes.

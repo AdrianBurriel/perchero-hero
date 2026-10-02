@@ -2,24 +2,11 @@ import './style.css';
 import * as THREE from 'three';
 import { garments, type GarmentData } from './garments';
 import { createStage, createHanger } from './stage';
-import { buildGarment, SHOULDER_Y } from './garment/builders';
+import { buildGarment } from './garment/builders';
 
-/* ---------- Parámetros de la simulación (afinar a ojo) ---------- */
-const GRAVITY = 38;      // rigidez del péndulo: mayor = oscila más rápido
-const DAMPING = 2.4;     // fricción angular: mayor = se para antes
-const COUPLING = 0;      // cuánto arrastra una percha a sus vecinas
-const GAIN = 0.0006;     // rad/s de impulso por cada px/s de puntero
-const MAX_OMEGA = 1;     // límite de velocidad angular (rad/s) ≈ ±9° de balanceo máximo
-const WIND = 0.12;       // brisa idle muy sutil (0 para desactivar)
+/* ---------- Parámetros (afinar a ojo) ---------- */
+// Sin balanceo: como en la referencia, las prendas solo giran de lado a frente
 const STEP = 1 / 120;    // paso fijo de integración
-
-/* Segundo muelle: el cuerpo de la prenda se retrasa respecto a la percha */
-const LAG_STIFF = 90;    // rigidez de la tela: mayor = sigue antes a la percha
-const LAG_DAMP = 7;      // amortiguación de la tela
-const LAG_INERTIA = 0.6; // cuánto se opone la tela a la aceleración de la percha
-const LAG_MAX = 0.12;    // deformación máxima (rad)
-
-/* Giro de lado → de frente al pasar por encima */
 const SIDE_ANGLE = 76;   // grados en reposo (90 = totalmente de canto)
 const TURN_STIFF = 28;   // rapidez del giro: menor = más lento (~1 s con 28)
 const TURN_DAMP = 11.5;  // ≥ 2·√TURN_STIFF: llega sin rebote; menor deja un pequeño rebote
@@ -46,15 +33,9 @@ const { renderer, scene, camera, resize } = createStage(canvas);
 interface Item {
   data: GarmentData;
   slot: THREE.Group;   // posición en el raíl (se aparta)
-  swing: THREE.Group;  // balanceo alrededor del raíl
   turner: THREE.Group; // giro de lado a frente
-  body: THREE.Group;   // tela (cizalla por retraso)
   hit: THREE.Mesh[];
   baseX: number;
-  angle: number;
-  omega: number;
-  lag: number;  // deformación de la tela relativa a la percha (rad)
-  lagV: number;
   turn: number; // 0 = de lado, 1 = de frente
   turnV: number;
   shift: number; // desplazamiento por el raíl (m)
@@ -67,22 +48,18 @@ const byMesh = new Map<THREE.Object3D, Item>();
 
 const items: Item[] = garments.map((data, i) => {
   const slot = new THREE.Group();
-  const swing = new THREE.Group();
   const turner = new THREE.Group();
   const { hook, frame } = createHanger();
   const garment = buildGarment(data, i + 1);
-  const body = garment.body;
-  body.matrixAutoUpdate = false;
-  turner.add(frame, body);
-  swing.add(hook, turner);
-  slot.add(swing);
+  turner.add(frame, garment.body);
+  slot.add(hook, turner);
   const baseX = (i - (garments.length - 1) / 2) * SPACING;
   slot.position.x = baseX;
   scene.add(slot);
 
   const item: Item = {
-    data, slot, swing, turner, body, hit: garment.hit, baseX,
-    angle: 0, omega: 0, lag: 0, lagV: 0, turn: 0, turnV: 0, shift: 0, shiftV: 0,
+    data, slot, turner, hit: garment.hit, baseX,
+    turn: 0, turnV: 0, shift: 0, shiftV: 0,
   };
   for (const m of garment.hit) byMesh.set(m, item);
 
@@ -120,8 +97,6 @@ addEventListener('keydown', (e) => e.key === 'Escape' && closeDetail());
 /* ---------- Entrada: raycast sobre las prendas ---------- */
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
-let lastX = 0;
-let lastT = 0;
 let lastHitAt = 0;
 
 function pick(e: MouseEvent): Item | null {
@@ -134,10 +109,6 @@ function pick(e: MouseEvent): Item | null {
 
 canvas.addEventListener('pointermove', (e) => {
   const now = performance.now();
-  const vx = lastT ? ((e.clientX - lastX) / Math.max(now - lastT, 1)) * 1000 : 0; // px/s
-  lastX = e.clientX;
-  lastT = now;
-
   const item = pick(e);
   if (item) {
     hovered = item;
@@ -146,43 +117,18 @@ canvas.addEventListener('pointermove', (e) => {
     hovered = null;
   }
   canvas.style.cursor = item ? 'pointer' : '';
-  if (!item || reduceMotion) return;
-  item.omega = Math.max(-MAX_OMEGA, Math.min(MAX_OMEGA, item.omega + vx * GAIN));
 });
-canvas.addEventListener('pointerleave', () => {
-  lastT = 0;
-  hovered = null;
-});
+canvas.addEventListener('pointerleave', () => (hovered = null));
 canvas.addEventListener('click', (e) => {
   const item = pick(e);
   if (item) openDetail(item.data);
 });
 
-/* ---------- Física ---------- */
-function step(dt: number, t: number) {
+/* ---------- Muelles de giro y apartado ---------- */
+function step(dt: number) {
   const active = hovered ?? focused;
   const activeIndex = active ? items.indexOf(active) : -1;
-  const acc = items.map((it, i) => {
-    const left = items[i - 1]?.angle ?? it.angle;
-    const right = items[i + 1]?.angle ?? it.angle;
-    const wind = reduceMotion ? 0 : WIND * Math.sin(t * 0.9 + i * 0.7);
-    return (
-      -GRAVITY * Math.sin(it.angle) -
-      DAMPING * it.omega +
-      COUPLING * (left + right - 2 * it.angle) +
-      wind
-    );
-  });
   items.forEach((it, i) => {
-    const a = acc[i] ?? 0;
-    it.omega += a * dt; // Euler semi-implícito
-    it.angle += it.omega * dt;
-
-    // La tela reacciona por inercia a la aceleración de la percha y vuelve con su propio muelle
-    const lagAcc = -LAG_STIFF * it.lag - LAG_DAMP * it.lagV - LAG_INERTIA * a;
-    it.lagV += lagAcc * dt;
-    it.lag = Math.max(-LAG_MAX, Math.min(LAG_MAX, it.lag + it.lagV * dt));
-
     // Muelle del giro hacia su objetivo (de frente si está activa)
     const target = it === active ? 1 : 0;
     // Las vecinas se apartan a cada lado de la activa, menos cuanto más lejos
@@ -208,12 +154,7 @@ const sideRad = THREE.MathUtils.degToRad(SIDE_ANGLE);
 function apply() {
   for (const it of items) {
     it.slot.position.x = it.baseX + it.shift;
-    it.swing.rotation.z = it.angle;
     it.turner.rotation.y = (1 - it.turn) * sideRad;
-    // Cizalla en x proporcional a la distancia bajo los hombros: el bajo se retrasa más que el cuello
-    const k = -it.lag;
-    it.body.matrix.set(1, k, 0, -k * SHOULDER_Y, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
-    it.body.matrixWorldNeedsUpdate = true;
   }
   const active = hovered ?? focused;
   const text = active ? `${active.data.name} · ${active.data.brand}` : '';
@@ -222,7 +163,6 @@ function apply() {
 
 let prev = performance.now();
 let accumulator = 0;
-let clock = 0;
 let running = true;
 
 function frame(now: number) {
@@ -230,8 +170,7 @@ function frame(now: number) {
   accumulator += Math.min((now - prev) / 1000, 0.05);
   prev = now;
   while (accumulator >= STEP) {
-    clock += STEP;
-    step(STEP, clock);
+    step(STEP);
     accumulator -= STEP;
   }
   apply();
