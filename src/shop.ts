@@ -7,7 +7,6 @@ import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove } from './ui/cart';
 import { mountSwitch } from './ui/switcher';
 import { mountStock } from './ui/stock';
-import { pileAndFly } from './ui/flyer';
 
 /* Shop the look: foto del modelo con puntos sobre cada prenda + perchero con esas prendas.
    Puntos, perchero y detalle comparten la prenda activa. */
@@ -23,39 +22,25 @@ $('#look-title').textContent = look.title;
 $('#look-subtitle').textContent = look.subtitle;
 $('#look-count').textContent = `${garments.length} prendas`;
 $('#look-total').textContent = formatPrice(garments.reduce((s, g) => s + g.price, 0));
-// Comprar el look: las prendas vuelan una tras otra a la cesta
 const buy = $<HTMLButtonElement>('#buy-look');
 const updateBuy = () => {
   const all = garments.every((g) => inCart(g.id));
   buy.disabled = all;
   buy.textContent = all ? 'Look en la cesta' : 'Comprar el look';
 };
-// Comprar el look: todas se pliegan y forman un montón de ropa doblada en el centro del
-// perchero; después van a la cesta de una en una
-buy.addEventListener('click', () => {
+// Comprar el look: las prendas se pliegan y van a la cesta estrictamente de una en una
+// (la siguiente no empieza hasta que aterriza la anterior), un poco más rápidas
+buy.addEventListener('click', async () => {
   const left = garments.map((_, i) => i).filter((i) => !inCart(garments[i]!.id));
   if (!left.length) return;
-  const land = (i: number) => {
-    addToCart(garments[i]!);
-    showDetail(current);
-    updateBuy();
-  };
-  if (rack.prefersReducedMotion) return left.forEach((i) => rack.detach(i) && land(i));
   buy.disabled = true;
   rack.setIdle(true); // las que esperan su turno se quedan quietas, de lado
-  const r = rack.rect;
-  pileAndFly(
-    left.map((i) => ({
-      width: rack.widthOf(i),
-      take: () => {
-        const out = rack.detach(i);
-        return out && { body: out.body, from: out.launch };
-      },
-    })),
-    { x: r.left + r.width / 2, y: r.top + r.height * 0.7 },
-    cartTarget(),
-    (k) => land(left[k]!),
-  ).then(() => rack.setIdle(false));
+  for (const i of left) {
+    if (await rack.sendToCart(i, cartTarget(), 1.4)) addToCart(garments[i]!);
+    showDetail(current);
+  }
+  rack.setIdle(false);
+  updateBuy();
 });
 
 /* ---------- Foto ---------- */

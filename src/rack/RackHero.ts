@@ -189,11 +189,11 @@ export class RackHero {
    * La prenda sale del perchero (queda la percha vacía), se pliega, se empaqueta y vuela hasta `to`.
    * Devuelve false si ya no estaba colgada.
    */
-  sendToCart(i: number, to: { x: number; y: number }): Promise<boolean> {
+  sendToCart(i: number, to: { x: number; y: number }, speed = 1): Promise<boolean> {
     const out = this.detach(i);
     if (!out) return Promise.resolve(false);
     if (this.reduceMotion) return Promise.resolve(true);
-    return packAndFly(out.body, out.launch, to).then(() => true);
+    return packAndFly(out.body, out.launch, to, speed).then(() => true);
   }
 
   /**
@@ -226,20 +226,11 @@ export class RackHero {
     this.idle = idle;
   }
 
-  /** Ancho de la prenda (m), para ordenarlas. */
-  widthOf(i: number) {
-    const it = this.items[i];
-    return it ? new THREE.Box3().setFromObject(it.body).getSize(new THREE.Vector3()).x : 0;
-  }
-
   /** Caja del lienzo del perchero en pantalla. */
   get rect() {
     return this.el.canvas.getBoundingClientRect();
   }
 
-  get prefersReducedMotion() {
-    return this.reduceMotion;
-  }
 
   /** Vuelve a colgar una prenda que estaba fuera (p. ej. al quitarla de la cesta). */
   restore(i: number) {
