@@ -98,7 +98,8 @@ body {
 
 .detail {
   position: fixed;
-  right: clamp(16px, 3vw, 40px);
+  /* A la izquierda: las flechas del slider quedan libres abajo a la derecha */
+  left: clamp(16px, 3vw, 40px);
   bottom: clamp(16px, 3vw, 40px);
   width: min(340px, calc(100vw - 32px));
   padding: 22px;
@@ -113,3 +114,8 @@ body {
 .detail__name { font-size: 22px; margin-top: 4px; }
 .detail__material { margin-top: 10px; font-size: 14px; }
 .detail__text { margin-top: 8px; font-size: 14px; color: var(--muted); line-height: 1.45; }
+
+/* En móvil las flechas van centradas abajo: el detalle sube bajo la cabecera */
+@media (max-width: 640px) {
+  .detail { top: 96px; bottom: auto; }
+}
