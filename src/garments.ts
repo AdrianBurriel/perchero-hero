@@ -1,7 +1,7 @@
 import type { FabricSpec } from './garment/fabrics';
 
 // Catálogo inventado: marcas y prendas ficticias para el prototipo.
-export type GarmentType = 'tee' | 'shirt' | 'sweater' | 'hoodie' | 'jacket';
+export type GarmentType = 'tee' | 'shirt' | 'sweater' | 'hoodie' | 'jacket' | 'blazer' | 'coat' | 'trousers';
 
 export interface GarmentData {
   id: string;
@@ -13,6 +13,7 @@ export interface GarmentData {
   fabric: FabricSpec;
   variant?: 'denim' | 'leather' | 'puffer' | 'overshirt';
   buttons?: { color: string; metal?: boolean };
+  accent?: string; // detalle de color (p. ej. pañuelo de bolsillo)
 }
 
 export const garments: GarmentData[] = [
@@ -89,8 +90,40 @@ export const garments: GarmentData[] = [
   },
 ];
 
+// Prendas del look 01 (Shop the look), recreadas a partir de la foto del modelo
+export const lookGarments: GarmentData[] = [
+  {
+    id: 'americana-camel', name: 'Americana Camel', brand: 'Sastrería Sur', type: 'blazer',
+    material: 'Lana fría de sarga, forro de viscosa',
+    description: 'Americana de un botón con solapa de muesca y pañuelo azul en el bolsillo de pecho.',
+    fabric: { kind: 'suiting', colors: ['#8c6f50'] },
+    buttons: { color: '#3b2a1e' },
+    accent: '#9cc3d9',
+  },
+  {
+    id: 'camisa-estampada', name: 'Camisa Estampada', brand: 'Brisa & Co.', type: 'shirt',
+    material: 'Popelín de algodón con estampado floral',
+    description: 'Camisa de fondo petróleo con flores menudas en azul claro.',
+    fabric: { kind: 'print', colors: ['#183646', '#86b8d0', '#e2ebf0'] },
+    buttons: { color: '#e9edf0' },
+  },
+  {
+    id: 'pantalon-traje', name: 'Pantalón de Traje', brand: 'Sastrería Sur', type: 'trousers',
+    material: 'Lana fría de sarga, a juego con la americana',
+    description: 'Pantalón de pinzas con raya marcada y bajo con vuelta.',
+    fabric: { kind: 'suiting', colors: ['#8c6f50'] },
+  },
+  {
+    id: 'abrigo-pano', name: 'Abrigo de Paño', brand: 'Lanar', type: 'coat',
+    material: 'Paño de lana batanada',
+    description: 'Abrigo largo azul marino de solapa ancha y tres botones.',
+    fabric: { kind: 'wool', colors: ['#1d2a39'] },
+    buttons: { color: '#1b1f26' },
+  },
+];
+
 export const byId = (id: string): GarmentData => {
-  const g = garments.find((x) => x.id === id);
+  const g = [...garments, ...lookGarments].find((x) => x.id === id);
   if (!g) throw new Error(`Prenda desconocida: ${id}`);
   return g;
 };

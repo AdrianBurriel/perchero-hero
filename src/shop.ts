@@ -13,6 +13,7 @@ document.querySelector('#look-title')!.textContent = look.title;
 document.querySelector('#look-subtitle')!.textContent = look.subtitle;
 
 const img = document.querySelector<HTMLImageElement>('#look-img')!;
+document.querySelector<HTMLElement>('.look__frame')!.style.setProperty('--ratio', String(look.ratio));
 img.alt = look.alt;
 // Si aún no existe la foto propia, se muestra la ilustración provisional
 img.addEventListener('error', () => img.src !== location.origin + look.placeholder && (img.src = look.placeholder), { once: true });

@@ -151,8 +151,9 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
   return { renderer, scene, camera, resize };
 }
 
-/** Percha: gancho giratorio (sigue al raíl) y cuerpo de madera (gira con la prenda). */
-export function createHanger() {
+/** Percha: gancho giratorio (sigue al raíl) y cuerpo de madera (gira con la prenda).
+    `trouserBar` añade la barra inferior donde se doblan los pantalones. */
+export function createHanger(trouserBar = false) {
   const r = 0.0145; // radio del gancho alrededor del raíl
   const hookCurve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(0, -0.097, 0),
@@ -176,7 +177,15 @@ export function createHanger() {
     new THREE.Vector3(0.09, -0.11, 0),
     new THREE.Vector3(0.18, -0.14, 0),
   ]);
-  const frame = new THREE.Mesh(new THREE.TubeGeometry(barCurve, 48, 0.0075, 12, false), wood);
-  frame.castShadow = true;
+  const body = new THREE.Mesh(new THREE.TubeGeometry(barCurve, 48, 0.0075, 12, false), wood);
+  body.castShadow = true;
+  const frame = new THREE.Group();
+  frame.add(body);
+  if (trouserBar) {
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.0055, 0.0055, 0.36, 16).rotateZ(Math.PI / 2), wood);
+    bar.position.y = -0.15;
+    bar.castShadow = true;
+    frame.add(bar);
+  }
   return { hook, frame };
 }

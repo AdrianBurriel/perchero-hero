@@ -9,7 +9,8 @@ export interface LookItem {
 export interface Look {
   title: string;
   subtitle: string;
-  image: string;       // foto propia (no incluida): public/looks/...
+  image: string;       // foto del look: public/looks/...
+  ratio: number;       // ancho / alto de la foto, para que los puntos caigan siempre en su sitio
   placeholder: string; // ilustración provisional mientras no exista la foto
   alt: string;
   items: LookItem[];
@@ -17,16 +18,17 @@ export interface Look {
 
 export const looks: Look[] = [
   {
-    title: 'Look 01 · Capas de otoño',
-    subtitle: 'Vaquera sobre oxford y camiseta de algodón, con el jersey de ochos a mano.',
+    title: 'Look 01 · Traje camel en la ciudad',
+    subtitle: 'Traje camel con camisa estampada y abrigo de paño azul al brazo.',
     image: '/looks/look-01.jpg',
+    ratio: 686 / 1031,
     placeholder: '/looks/look-01-placeholder.svg',
-    alt: 'Modelo con cazadora vaquera, camisa oxford azul, camiseta blanca y jersey de ochos al hombro',
+    alt: 'Modelo caminando bajo un paso elevado con traje camel, camisa estampada azul y un abrigo azul marino al brazo',
     items: [
-      { id: 'cazadora-trucker', x: 30, y: 36 },
-      { id: 'camisa-oxford', x: 55, y: 30 },
-      { id: 'camiseta-pima', x: 50, y: 22 },
-      { id: 'jersey-ochos', x: 68, y: 18 },
+      { id: 'americana-camel', x: 43, y: 31 },
+      { id: 'camisa-estampada', x: 50.5, y: 26 },
+      { id: 'pantalon-traje', x: 45, y: 46 },
+      { id: 'abrigo-pano', x: 58, y: 40 },
     ],
   },
 ];

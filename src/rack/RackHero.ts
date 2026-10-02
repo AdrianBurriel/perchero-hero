@@ -164,7 +164,7 @@ export class RackHero {
   private mountItem(data: GarmentData, i: number, baseX: number): Item {
     const slot = new THREE.Group();
     const turner = new THREE.Group();
-    const { hook, frame } = createHanger();
+    const { hook, frame } = createHanger(data.type === 'trousers');
     const garment = buildGarment(data, i + 1);
     turner.add(frame, garment.body);
     slot.add(hook, turner);

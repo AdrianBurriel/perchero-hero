@@ -249,7 +249,77 @@ function jacket(d: GarmentData, seed: number): BuiltGarment {
   return k;
 }
 
-const BUILDERS = { tee, shirt, sweater, hoodie, jacket } satisfies Record<GarmentData['type'], unknown>;
+/* ---------- Sastrería: americana, abrigo y pantalón ---------- */
+// Silueta de chaqueta sastre parametrizada por el largo del bajo
+const tailored = (hem: number, flare: number): Vec2[] => [
+  [0, -0.13], [0.082, -0.084], [0.228, -0.128], [0.252, -0.24], [0.238, -0.48],
+  [0.25 + flare, hem + 0.02], [0.12, hem], [0.05, hem - 0.012], [0, hem - 0.004],
+];
+const tailoredSleeve = (cuff: number): Vec2[] => [
+  [0.214, -0.13], [0.27, -0.148], [0.3, -0.42], [0.312, cuff], [0.246, cuff - 0.018], [0.232, -0.42], [0.22, -0.25],
+];
+// Solapa de muesca: cuello + escotadura + solapa que baja hasta el botón
+const notchLapel = (k: number, to: number): Vec2[] => [
+  [0.006, -0.12], [0.082, -0.08], [0.13, -0.112], [0.112, -0.15],
+  [0.15 * k, -0.17], [0.11 * k, -0.28], [0.02, to],
+];
+
+function tailoredTop(k: Kit, d: GarmentData, seed: number, o: { hem: number; flare: number; cuff: number; depth: number; lapelK: number; lapelTo: number }) {
+  const mat = fabricMaterial(d.fabric, { seed });
+  const folds = drape(seed, 0.004, -0.12, o.hem);
+  const surf = k.piece(mirror(tailored(o.hem, o.flare)), { depth: o.depth, folds, round: o.depth * 1.5 }, mat, true);
+  for (const side of [1, -1]) {
+    k.piece(
+      flipX(tailoredSleeve(o.cuff), side),
+      { depth: o.depth * 0.75, base: () => -0.006, folds: drape(seed + side * 7, 0.004, -0.15, o.cuff) },
+      mat, true,
+    );
+    k.overlay(flipX(notchLapel(o.lapelK, o.lapelTo), side), surf, 0.004, mat, 0.002);
+    // Bolsillos de cadera con cartera
+    const fy = o.hem + 0.2;
+    k.overlay(flipX([[0.1, fy], [0.215, fy - 0.004], [0.215, fy - 0.045], [0.1, fy - 0.041]], side), surf, 0.003, mat);
+  }
+  // Cruce delantero: línea de cierre
+  k.overlay([[-0.004, o.lapelTo], [0.004, o.lapelTo], [0.004, o.hem], [-0.004, o.hem]], surf, 0.0015, fabricMaterial(d.fabric, { seed, inner: true }));
+  return surf;
+}
+
+function blazer(d: GarmentData, seed: number): BuiltGarment {
+  const k = new Kit();
+  const surf = tailoredTop(k, d, seed, { hem: -0.75, flare: 0.012, cuff: -0.66, depth: 0.024, lapelK: 1, lapelTo: -0.47 });
+  k.buttons([-0.5], 0, surf, d.buttons);
+  // Bolsillo de pecho con pañuelo asomando
+  const welt = k.overlay([[0.12, -0.31], [0.2, -0.296], [0.2, -0.31], [0.12, -0.324]], surf, 0.002, fabricMaterial(d.fabric, { seed }));
+  if (d.accent) {
+    k.overlay([[0.128, -0.31], [0.142, -0.272], [0.162, -0.29], [0.18, -0.268], [0.194, -0.298]], welt, 0.003,
+      fabricMaterial({ kind: 'linen', colors: [d.accent] }), 0.0015);
+  }
+  return k;
+}
+
+function coat(d: GarmentData, seed: number): BuiltGarment {
+  const k = new Kit();
+  const surf = tailoredTop(k, d, seed, { hem: -0.9, flare: 0.03, cuff: -0.7, depth: 0.03, lapelK: 1.2, lapelTo: -0.34 });
+  k.buttons([-0.38, -0.5, -0.62], 0, surf, d.buttons);
+  return k;
+}
+
+function trousers(d: GarmentData, seed: number): BuiltGarment {
+  // Doblado sobre la barra inferior de la percha: se ve una pernera con la raya marcada
+  const k = new Kit();
+  const mat = fabricMaterial(d.fabric, { seed });
+  const BAR_Y = -0.15;
+  const half: Vec2[] = [[0, BAR_Y + 0.016], [0.1, BAR_Y + 0.014], [0.122, BAR_Y - 0.01], [0.118, -0.3], [0.098, -0.64], [0, -0.646]];
+  const crease: Field = (x, y) => (y < BAR_Y - 0.02 ? 0.004 * Math.exp(-(((x - 0.012) / 0.012) ** 2)) : 0);
+  const fall = drape(seed, 0.003, BAR_Y, -0.65);
+  const folds: Field = (x, y) => fall(x, y) + crease(x, y);
+  const surf = k.piece(mirror(half), { depth: 0.022, folds }, mat, true);
+  // Bajo con vuelta
+  k.overlay([[-0.099, -0.6], [0.099, -0.6], [0.098, -0.646], [-0.098, -0.646]], surf, 0.003, mat);
+  return k;
+}
+
+const BUILDERS = { tee, shirt, sweater, hoodie, jacket, blazer, coat, trousers } satisfies Record<GarmentData['type'], unknown>;
 
 export function buildGarment(d: GarmentData, seed: number): BuiltGarment {
   return BUILDERS[d.type](d, seed);

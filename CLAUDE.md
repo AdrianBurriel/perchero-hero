@@ -16,7 +16,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - Render 3D con **three.js (WebGL)**: luz física, sombras sobre la pared, entorno `RoomEnvironment`.
 - Física propia (sin librerías). GSAP solo para transiciones de UI (panel de detalle), no para el balanceo.
 - Prendas y tejidos **procedurales** (sin assets externos), inventados: camisetas, camisas, jersey,
-  sudadera, cazadoras (denim, cuero, plumífero), sobrecamisa de pana, lino.
+  sudadera, cazadoras (denim, cuero, plumífero), sobrecamisa de pana, lino, americana, abrigo y pantalón
+  (doblado sobre la barra inferior de la percha).
 
 ## Páginas
 - `index.html` → `src/main.ts`: portada con perchero de pared y todo el catálogo. Enlaza a Shop the look.
@@ -32,9 +33,11 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - `src/garment/pillow.ts`: malla "acolchada" a partir de una silueta 2D (dos caras cosidas en el canto).
 - `src/garment/builders.ts`: patrones y montaje de cada tipo de prenda (mangas, cuellos, botones…).
 - `src/garment/fabrics.ts`: texturas procedurales (color + normal map) por tipo de tejido.
-- `src/garments.ts`: catálogo ficticio con `id` (`byId(id)` para buscar).
+- `src/garments.ts`: catálogo ficticio con `id` (`garments` = portada, `lookGarments` = prendas de los looks;
+  `byId(id)` busca en ambos).
 - `src/looks.ts`: looks (foto, texto y prendas con posición del punto en % sobre la foto).
-- `public/looks/`: fotos propias de los looks. Falta `look-01.jpg`; mientras, se ve `look-01-placeholder.svg`.
+- `public/looks/`: fotos de los looks (`look-01.jpg`, aportada por el usuario). Si falta, se ve el `*-placeholder.svg`.
+  Las prendas 3D del look se recrean a mano a partir de la foto (colores, tejidos y detalles).
 
 ## Movimiento (`src/rack/RackHero.ts`)
 - Sin balanceo (como la referencia): las prendas están quietas y de lado (`SIDE_ANGLE`).

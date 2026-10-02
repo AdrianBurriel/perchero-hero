@@ -16,11 +16,14 @@
         <p class="look__subtitle" id="look-subtitle"></p>
       </div>
       <figure class="look__photo">
-        <img id="look-img" alt="" />
-        <!-- Un punto por prenda: selecciona esa prenda en el burro -->
-        <div class="look__spots" id="look-spots"></div>
+        <!-- Marco con la proporción de la foto: los puntos (en %) caen siempre sobre su prenda -->
+        <div class="look__frame">
+          <img id="look-img" alt="" />
+          <!-- Un punto por prenda: selecciona esa prenda en el perchero -->
+          <div class="look__spots" id="look-spots"></div>
+        </div>
       </figure>
-      <section class="look__rack" id="look-rack" aria-label="Burro con las prendas del look"></section>
+      <section class="look__rack" id="look-rack" aria-label="Perchero con las prendas del look"></section>
     </main>
     <script type="module" src="/src/shop.ts"></script>
   </body>

@@ -5,7 +5,8 @@ import * as THREE from 'three';
 
 export type FabricKind =
   | 'jersey' | 'stripes' | 'oxford' | 'flannel' | 'denim' | 'leather' | 'cable'
-  | 'fleece' | 'nylon' | 'corduroy' | 'linen' | 'rib' | 'zip' | 'plaster';
+  | 'fleece' | 'nylon' | 'corduroy' | 'linen' | 'rib' | 'zip' | 'plaster'
+  | 'suiting' | 'print' | 'wool';
 
 export interface FabricSpec {
   kind: FabricKind;
@@ -254,6 +255,56 @@ const RECIPES: Record<FabricKind, Recipe> = {
     pixel: (_S, [c]) => (_x, y) => {
       const h = Math.sqrt(Math.sin(Math.PI * frac(y / 32)));
       return [h, shade(c!, 0.6 + 0.4 * h)];
+    },
+  },
+  suiting: {
+    // Lana de traje: sarga 2/2 muy fina y jaspeado suave
+    size: 256, tile: 0.03, normal: 0.25, roughness: 0.78, sheen: 0.6,
+    pixel: (S, [c], seed) => {
+      const heather = noise(S, 64, seed), n = noise(S, 6, seed + 2, 2);
+      return (x, y) => {
+        const w = weave(x, y, 4, (i, j) => (((i + j) % 4) + 4) % 4 < 2);
+        const k = 0.9 + 0.1 * w.h + 0.08 * (heather(x, y) - 0.5) + 0.05 * (n(x, y) - 0.5);
+        return [w.h, shade(c!, k)];
+      };
+    },
+  },
+  print: {
+    // Popelín estampado: flores pequeñas repartidas con desorden (repetible)
+    size: 512, tile: 0.08, normal: 0.2, roughness: 0.75, sheen: 0.4,
+    pixel: (S, [ground, motif, dot], seed) => {
+      const G = 8, cs = S / G, r = mulberry32(seed);
+      const pts = Array.from({ length: G * G }, () => [0.2 + 0.6 * r(), 0.2 + 0.6 * r(), r() * Math.PI, 0.6 + 0.5 * r()] as const);
+      return (x, y) => {
+        const w = weave(x, y, 4, (i, j) => (i + j) % 2 === 0);
+        const ci = Math.floor(x / cs), cj = Math.floor(y / cs);
+        let col: RGB = ground!;
+        for (let dj = -1; dj <= 1; dj++) {
+          for (let di = -1; di <= 1; di++) {
+            const i = ci + di, j = cj + dj;
+            const p = pts[(((j % G) + G) % G) * G + (((i % G) + G) % G)]!;
+            const dx = x - (i + p[0]) * cs, dy = y - (j + p[1]) * cs;
+            const d = Math.hypot(dx, dy);
+            const R = cs * 0.34 * p[3];
+            const petals = R * (0.62 + 0.38 * Math.cos(5 * (Math.atan2(dy, dx) + p[2])));
+            if (d < R * 0.22) col = dot!;
+            else if (d < petals) col = motif!;
+            else if (Math.abs(d - R * 1.25) < 1.2 && Math.cos(3 * (Math.atan2(dy, dx) - p[2])) > 0.55) col = mix(ground!, motif!, 0.6);
+          }
+        }
+        return [w.h, shade(col, 0.92 + 0.08 * w.h)];
+      };
+    },
+  },
+  wool: {
+    // Paño de abrigo: superficie batanada, fieltrada, sin trama visible
+    size: 256, tile: 0.05, normal: 0.35, roughness: 0.97, sheen: 1,
+    pixel: (S, [c], seed) => {
+      const fine = noise(S, 128, seed, 2), soft = noise(S, 8, seed + 4, 3);
+      return (x, y) => {
+        const f = fine(x, y), s = soft(x, y);
+        return [0.6 * f + 0.4 * s, shade(c!, 0.9 + 0.12 * (f - 0.5) + 0.1 * (s - 0.5))];
+      };
     },
   },
   plaster: {
