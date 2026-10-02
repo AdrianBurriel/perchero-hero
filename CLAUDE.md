@@ -22,7 +22,11 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 ## Páginas
 - `index.html` → `src/main.ts`: portada con perchero de pared y todo el catálogo. Enlaza a Shop the look.
 - `shop-the-look.html` → `src/shop.ts`: foto del modelo con puntos por prenda + el mismo perchero de pared
-  con las prendas del look, sin fondo propio (`transparent`: solo sombras sobre el fondo de la página). Puntos y burro comparten la prenda activa (hover = previsualizar, clic = detalle).
+  con las prendas del look, sin fondo propio (`transparent`: solo sombras sobre el fondo de la página).
+  Puntos y perchero comparten la prenda activa (hover = previsualizar, clic = seleccionar).
+  El detalle va en la parte baja de la foto, abierto desde el inicio, y sigue a la prenda activa
+  (`RackHero` con `onOpen`: la página muestra el detalle en lugar del perchero).
+  Encuadre de la foto con `focus` en `src/looks.ts` (punto centrado y zoom; foto y puntos se amplían juntos).
 - Multipágina declarada en `vite.config.ts` (`build.rollupOptions.input`).
 
 ## Estructura
