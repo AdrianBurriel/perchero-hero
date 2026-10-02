@@ -5,7 +5,7 @@ import { fabricMaterial } from './garment/fabrics';
 /* Escena fija: pared, raíl, luces y cámara. La percha y las prendas se montan en main. */
 
 export const WALL_Z = -0.44;
-export const RAIL_HALF = 1.42; // cabe la fila entera aunque el slider la desplace hasta un extremo
+export const RAIL_HALF = 1.12; // cabe la fila con una prenda de frente en cualquier extremo
 const FOV = 26;
 const TARGET = new THREE.Vector3(0, -0.4, 0);
 

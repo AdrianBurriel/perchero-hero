@@ -30,8 +30,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - Sin balanceo (como la referencia): las prendas están quietas y de lado (`SIDE_ANGLE`).
 - La prenda activa (hover por raycast o foco con Tab) gira de frente y las vecinas se apartan
   (`PUSH`, `PUSH_FALLOFF`), con muelles críticamente amortiguados (`TURN_STIFF`, `TURN_DAMP`).
-- Slider: flechas ‹ › (y teclas ← →) cambian la prenda seleccionada; las perchas se deslizan juntas
-  por el raíl (`SLIDE_STIFF`, `SLIDE_DAMP`) hasta centrarla. Hover y foco previsualizan otra prenda.
+- Slider: flechas ‹ › (y teclas ← →) cambian la prenda seleccionada, que gira de frente en su sitio
+  (las perchas no se desplazan para centrarla). Hover y foco previsualizan otra prenda.
 - La cámara encaja siempre el perchero entero (raíl y soportes, `RAIL_HALF`).
 - Paso fijo de 1/120 s con acumulador. Parámetros al inicio de `main.ts`.
 - El péndulo con viento y retraso de tela existió en commits anteriores (ver historial de git).
