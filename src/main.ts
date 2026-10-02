@@ -2,7 +2,9 @@ import './style.css';
 import { garments } from './garments';
 import { RackHero } from './rack/RackHero';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove } from './ui/cart';
+import { mountSwitch } from './ui/switcher';
 
+mountSwitch(document.querySelector<HTMLElement>('.switch')!);
 mountCart(document.querySelector<HTMLElement>('#cart-slot')!);
 
 // Portada: perchero de pared con todo el catálogo. Lo que ya está en la cesta no se cuelga.

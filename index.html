@@ -11,11 +11,14 @@
   <body>
     <main class="hero">
       <header class="topbar topbar--over">
-        <p class="topbar__crumb">Estudio / 11 prendas en percha</p>
-        <p class="topbar__brand">Estudio</p>
-        <div class="topbar__end" id="cart-slot">
-          <a class="topbar__link" href="/shop-the-look.html">Shop the look <span aria-hidden="true">→</span></a>
-        </div>
+        <p class="topbar__crumb">11 prendas en percha</p>
+        <!-- Selector de sección: la pastilla se desliza entre las dos páginas -->
+        <nav class="switch" aria-label="Sección">
+          <span class="switch__pill" aria-hidden="true"></span>
+          <a class="switch__opt" href="/" aria-current="page">Perchero</a>
+          <a class="switch__opt" href="/shop-the-look.html">Shop the look</a>
+        </nav>
+        <div class="topbar__end" id="cart-slot"></div>
       </header>
       <p class="hero__hint">Pasa por encima de una prenda · haz clic para ver el detalle</p>
       <!-- RackHero monta aquí el lienzo, las flechas y el detalle -->

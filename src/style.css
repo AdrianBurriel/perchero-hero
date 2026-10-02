@@ -73,25 +73,49 @@ button { font: inherit; color: inherit; }
 .topbar > :first-child { justify-self: start; }
 .topbar > :last-child { justify-self: end; }
 .topbar--over { position: absolute; inset: 0 0 auto 0; z-index: 1; pointer-events: none; }
-.topbar__brand {
-  font-family: var(--serif);
-  font-size: 22px;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  color: var(--ink);
-}
-.topbar__link,
-.topbar__back {
+/* ---------- Selector de sección ---------- */
+.switch {
+  --x: 0px;
+  --w: 0px;
+  --lean: 0px;
+  position: relative;
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(251, 250, 247, 0.55);
+  backdrop-filter: blur(6px);
   pointer-events: auto;
-  color: var(--ink);
-  text-decoration: none;
-  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
-  padding-bottom: 3px;
-  transition: background-size 0.3s var(--ease);
-  white-space: nowrap;
 }
-.topbar__link:hover,
-.topbar__back:hover { background-size: 0 1px; background-position: 100% 100%; }
+.switch__pill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: calc(var(--w) + max(var(--lean), calc(var(--lean) * -1)));
+  transform: translateX(calc(var(--x) + min(var(--lean), 0px)));
+  border-radius: 999px;
+  background: var(--ink);
+  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.5);
+  transition: transform 0.42s cubic-bezier(0.65, 0, 0.25, 1.15), width 0.42s cubic-bezier(0.65, 0, 0.25, 1.15);
+}
+.switch.is-static .switch__pill { transition: none; }
+.switch__opt {
+  position: relative;
+  z-index: 1;
+  padding: 7px 16px;
+  border-radius: 999px;
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.3s var(--ease);
+}
+.switch__opt:hover { color: var(--ink); }
+.switch__opt.is-on { color: var(--paper); }
+.switch__opt:focus-visible { outline-offset: 1px; }
+/* Al salir, la opción elegida "pulsa" levemente mientras llega la pastilla */
+.switch.is-leaving .switch__opt.is-on { animation: switch-press 0.32s var(--ease); }
+@keyframes switch-press { 50% { transform: scale(0.96); } }
 
 /* ---------- Portada ---------- */
 .hero {
@@ -556,7 +580,9 @@ button { font: inherit; color: inherit; }
 
 @media (max-width: 640px) {
   .topbar { grid-template-columns: 1fr auto; }
-  .topbar__brand { display: none; }
+  .topbar__crumb { display: none; }
+  .topbar > .switch { justify-self: start; }
+  .switch__opt { padding: 7px 12px; }
   .hero__hint { display: none; }
   .hero .rack__caption,
   .rack__caption { bottom: calc(var(--gutter) + 54px); }
@@ -568,7 +594,6 @@ button { font: inherit; color: inherit; }
   .card__text { display: none; }
   .card__add, .card__cta { height: 40px; }
   .card__cta { padding: 0 12px; }
-  .topbar__end > .topbar__crumb { display: none; }
   .detail { top: 76px; bottom: auto; left: 16px; }
   .look__detail { left: 10px; right: 10px; bottom: 10px; }
 }

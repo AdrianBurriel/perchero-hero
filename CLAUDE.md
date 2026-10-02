@@ -20,7 +20,7 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   (doblado sobre la barra inferior de la percha).
 
 ## Páginas
-- `index.html` → `src/main.ts`: portada con perchero de pared y todo el catálogo. Enlaza a Shop the look.
+- `index.html` → `src/main.ts`: portada con perchero de pared y todo el catálogo.
 - `shop-the-look.html` → `src/shop.ts`: foto del modelo con puntos por prenda + el mismo perchero de pared
   con las prendas del look, sin fondo propio (`transparent`: solo sombras sobre el fondo de la página).
   Puntos y perchero comparten la prenda activa (hover = previsualizar, clic = seleccionar).
@@ -46,6 +46,9 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   `Kit.sleeve`) y la mitad inferior (deformación en el vertex shader) y vuela en arco. `RackHero.sendToCart(i, destino)` la lanza y deja la percha vacía;
   `RackHero.restore(i)` la vuelve a colgar (al quitarla de la cesta). Opción `gone` para empezar sin
   las prendas que ya están en la cesta.
+- `src/ui/switcher.ts`: selector Perchero | Shop the look en el centro de la barra superior. La pastilla
+  se desliza a la opción elegida antes de navegar y en la página nueva sale desde la anterior
+  (sessionStorage); en hover se estira hacia la opción inactiva.
 - `src/style.css`: sistema visual común. Tipografías Instrument Serif (títulos) e Inter (texto) desde Google Fonts.
 - `src/garments.ts`: catálogo ficticio con `id` y `price` (€) (`garments` = portada, `lookGarments` = prendas de los looks;
   `byId(id)` busca en ambos).

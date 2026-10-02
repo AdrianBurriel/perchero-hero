@@ -5,10 +5,12 @@ import { looks } from './looks';
 import { RackHero } from './rack/RackHero';
 import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove } from './ui/cart';
+import { mountSwitch } from './ui/switcher';
 
 /* Shop the look: foto del modelo con puntos sobre cada prenda + perchero con esas prendas.
    Puntos, perchero y detalle comparten la prenda activa. */
 
+mountSwitch($('.switch'));
 mountCart($('#cart-slot'));
 
 const look = looks[0]!;

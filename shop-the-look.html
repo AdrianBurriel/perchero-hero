@@ -10,11 +10,14 @@
   </head>
   <body class="page">
     <header class="topbar">
-      <a class="topbar__back" href="/"><span aria-hidden="true">←</span> Perchero</a>
-      <p class="topbar__brand">Estudio</p>
-      <div class="topbar__end" id="cart-slot">
-        <p class="topbar__crumb">Shop the look</p>
-      </div>
+      <p class="topbar__crumb">Look 01 · 4 prendas</p>
+      <!-- Selector de sección: la pastilla se desliza entre las dos páginas -->
+      <nav class="switch" aria-label="Sección">
+        <span class="switch__pill" aria-hidden="true"></span>
+        <a class="switch__opt" href="/">Perchero</a>
+        <a class="switch__opt" href="/shop-the-look.html" aria-current="page">Shop the look</a>
+      </nav>
+      <div class="topbar__end" id="cart-slot"></div>
     </header>
     <main class="look">
       <div class="look__intro">
