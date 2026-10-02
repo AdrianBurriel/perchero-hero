@@ -58,10 +58,11 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   (sessionStorage); en hover se estira hacia la opción inactiva. Cambiar de sección (selector o
   «Ver otros percheros», `leaveSection`) vacía la cesta (`clearCart`): cada página empieza con su perchero lleno.
 - `src/ui/loader.ts`: pantalla de carga (marcado `#loader` en cada HTML, con fondo inline para el primer pintado).
-  Fondo oscuro, se abre un hoyo de green (radio en un shader del suelo) y sale una percha 3D (`createHanger`)
-  con muelles estilo Framer Motion (`Spring`). `startLoader()` → `await loader.intro` (la percha queda quieta y
-  la página monta su `RackHero`, que bloquea el hilo un instante) → `loader.finish()` sale cuando hay `load`,
-  fuentes y primer fotograma, nunca antes de `MIN_MS` (1,5 s). Necesita `build.target: 'es2022'` (await en el nivel superior).
+  Fondo crema (`--wall`) con una percha 3D (`createHanger`) que aparece desde 0 con rebote, gira y se balancea,
+  con muelles estilo Framer Motion (`Spring`) y sombra difusa en el suelo. `startLoader()` → `await loader.intro`
+  (la percha queda quieta y la página monta su `RackHero`, que bloquea el hilo un instante) → `loader.finish()`:
+  cuando hay `load`, fuentes y primer fotograma, la percha toma impulso y la capa sube (CSS `translateY(-100%)`),
+  descubriendo la página de abajo arriba. Nunca dura menos de `MIN_MS` (2 s). Necesita `build.target: 'es2022'` (await en el nivel superior).
 - `src/ui/stock.ts`: contador «9 / 11 prendas en percha» (colgadas / perchas) de la barra superior, alimentado por
   `RackHero` (`onStock`). Al cambiar, el número rueda y flota un «−1»/«+1».
 - `src/style.css`: sistema visual común. Tipografías Instrument Serif (títulos) e Inter (texto) desde Google Fonts.

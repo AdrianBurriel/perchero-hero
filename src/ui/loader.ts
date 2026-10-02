@@ -2,19 +2,16 @@ import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { createHanger } from '../stage';
 
-/* Pantalla de carga: fondo oscuro en el que se abre un hoyo (como el de un green) y del que sale
-   una percha en 3D, movida con muelles al estilo Framer Motion. Dura lo que tarde la página en
-   estar lista y nunca menos de MIN_MS. La intro acaba con la percha quieta en el aire: en ese
-   momento la página monta su perchero, que bloquea el hilo un instante sin que se note. */
+/* Pantalla de carga: fondo crema (el de la web) en el que aparece una percha en 3D, movida con
+   muelles al estilo Framer Motion. Dura lo que tarde la página en estar lista y nunca menos de
+   MIN_MS; al final la capa sube y deja ver la página. La intro acaba con la percha quieta en el
+   aire: en ese momento la página monta su perchero, que bloquea el hilo un instante sin que se note. */
 
-const MIN_MS = 1500;      // duración mínima total (intro + espera + salida)
-const EXIT_MS = 700;      // salida: la percha sale disparada, el hoyo se cierra y se funde
-const HOLE_R = 0.22;      // radio del hoyo (m); la percha mide 0,36 de ancho
-const CUP_DEPTH = 0.42;
+const MIN_MS = 2000;      // duración mínima total (intro + espera + salida)
+const EXIT_MS = 1000;     // salida: la percha toma impulso y la capa sube (CSS) de abajo arriba
+const REVEAL_AT = 0.12;   // s de la salida en que empieza a subir la capa (con el salto)
 const REST_Y = 0.3;       // altura de la percha en reposo (origen = arriba del gancho)
-const START_Y = -CUP_DEPTH + 0.17;
-const BG = '#12110f';
-const SPOT = '#2a2620';   // suelo bajo el foco
+const BG = '#d6d0c4';     // --wall
 
 /** Muelle amortiguado (como `type: "spring"` de Framer Motion). */
 class Spring {
@@ -85,69 +82,52 @@ export function startLoader(): Loader {
   scene.add(key);
 
   const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 40);
-  camera.position.set(0, 1, 3);
-  camera.lookAt(0, 0.16, 0);
+  camera.position.set(0, 0.75, 2.3);
+  camera.lookAt(0, 0.2, 0);
   const resize = () => {
     renderer.setSize(innerWidth, innerHeight, false);
     camera.aspect = innerWidth / innerHeight;
-    // En vertical se aleja un poco para que quepan el hoyo y el giro de la percha
+    // En vertical se aleja un poco para que quepa el giro de la percha
     camera.zoom = Math.min(1, camera.aspect / 0.75);
     camera.updateProjectionMatrix();
   };
   resize();
   addEventListener('resize', resize);
 
-  // Suelo: foco suave que se funde con el fondo, con el hoyo recortado (radio animado) y su labio
-  const holeR = { value: 0 };
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(14, 14).rotateX(-Math.PI / 2),
-    new THREE.ShaderMaterial({
-      uniforms: { uR: holeR, uBg: { value: new THREE.Color(BG) }, uSpot: { value: new THREE.Color(SPOT) } },
-      vertexShader: `varying vec2 vP;
-        void main() { vP = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-      fragmentShader: `uniform float uR; uniform vec3 uBg; uniform vec3 uSpot; varying vec2 vP;
-        void main() {
-          float d = length(vP);
-          if (d < uR) discard;
-          vec3 c = mix(uSpot, uBg, smoothstep(0.0, 1.5, d));
-          c *= 1.0 - 0.35 * (1.0 - smoothstep(uR, uR + 0.05, d)); // sombra en el borde del hoyo
-          gl_FragColor = vec4(c, 1.0);
-          #include <colorspace_fragment>
-        }`,
-    }),
+  // Sombra difusa en el suelo: crece y se oscurece cuanto más cerca está la percha
+  const blob = document.createElement('canvas');
+  blob.width = blob.height = 128;
+  const g = blob.getContext('2d')!;
+  const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grad.addColorStop(0, 'rgba(40,30,20,0.55)');
+  grad.addColorStop(1, 'rgba(40,30,20,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  const shadowTex = new THREE.CanvasTexture(blob);
+  const shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.5, 0.16).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, toneMapped: false }),
   );
-  scene.add(ground);
-
-  // Taza del hoyo (por dentro): pared oscura, borde blanco como en los greens y fondo negro
-  const cup = new THREE.Group();
-  const wall = new THREE.MeshStandardMaterial({ color: '#2b2824', roughness: 0.9, side: THREE.BackSide });
-  const liner = new THREE.MeshStandardMaterial({ color: '#e7e2d8', roughness: 0.6, side: THREE.BackSide });
-  const pit = new THREE.MeshBasicMaterial({ color: '#050505' });
-  const wallMesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, CUP_DEPTH, 48, 1, true), wall);
-  wallMesh.position.y = -CUP_DEPTH / 2;
-  const linerMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.995, 0.995, 0.035, 48, 1, true), liner);
-  linerMesh.position.y = -0.03;
-  const bottom = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), pit);
-  bottom.position.y = -CUP_DEPTH;
-  cup.add(wallMesh, linerMesh, bottom);
-  scene.add(cup);
+  scene.add(shadow);
 
   // La percha del perchero
   const { hook, frame } = createHanger();
   const hanger = new THREE.Group();
   hanger.add(hook, frame);
+  hanger.position.y = REST_Y;
+  hanger.scale.setScalar(0.001);
   scene.add(hanger);
 
   /* ---------- Movimiento ---------- */
-  const hole = new Spring(0, 260, 17);          // escala del hoyo: se abre con un pequeño rebote
-  const y = new Spring(START_Y, 230, 16);       // sube con rebote
-  const spin = new Spring(0, 120, 15);          // da una vuelta mientras sale
-  const tilt = new Spring(0, 140, 5);           // bamboleo al salir del hoyo
-  let out = false;                              // ya ha cruzado el borde del hoyo
+  const grow = new Spring(0, 200, 13);          // aparece desde 0 con rebote
+  const y = new Spring(REST_Y - 0.1, 160, 12);  // sube un poco mientras crece
+  const spin = new Spring(-Math.PI, 90, 13);    // da media vuelta y queda de frente
+  const tilt = new Spring(0, 140, 5);           // bamboleo al llegar
   let t = 0;                                    // tiempo de la animación (s, con dt acotado)
   let introDone: () => void;
   const intro = new Promise<void>((r) => (introDone = r));
   let introFired = false;
+  let wobbled = false;
   let exitAt = Infinity;                        // t en que empieza la salida
   let resolveDone: () => void;
   const done = new Promise<void>((r) => (resolveDone = r));
@@ -159,29 +139,28 @@ export function startLoader(): Loader {
     last = now;
     t += dt;
 
-    if (t > 0.05) hole.to(1);
-    if (t > 0.22 && t < exitAt) {
-      y.to(REST_Y + (t > 0.9 ? 0.012 * Math.sin((t - 0.9) * 2.4) : 0)); // flota mientras espera
-      spin.to(Math.PI * 2 + (t > 0.9 ? 0.22 * Math.sin((t - 0.9) * 1.3) : 0));
+    if (t > 0.1 && t < exitAt) {
+      grow.to(1);
+      y.to(REST_Y + (t > 1 ? 0.012 * Math.sin((t - 1) * 2.4) : 0)); // flota mientras espera
+      spin.to(t > 1 ? 0.22 * Math.sin((t - 1) * 1.3) : 0);
     }
-    if (!out && y.x > -0.05) {
-      out = true;
-      tilt.v = 4.5; // sale del hoyo de golpe: se balancea
+    if (!wobbled && t > 0.45) {
+      wobbled = true;
+      tilt.v = 4.5; // llega con impulso: se balancea
     }
-    if (!introFired && t > 0.85) {
+    if (!introFired && t > 0.9) {
       introFired = true;
       introDone();
     }
 
-    // Salida: se agacha (anticipación), sale disparada hacia arriba girando y el hoyo se cierra
+    // Salida: se agacha (anticipación), salta girando y la capa sube y se la lleva
     const e = t - exitAt;
     if (e >= 0) y.to(REST_Y - 0.05, 300, 22);
-    if (e >= 0.13) {
-      y.to(2.6, 160, 14);
-      spin.to(Math.PI * 3, 90, 12);
+    if (e >= 0.12) {
+      y.to(REST_Y + 0.22, 160, 13);
+      spin.to(Math.PI, 90, 12);
     }
-    if (e >= 0.22) hole.to(0, 320, 28);
-    if (e >= 0.3 && !root.classList.contains('is-out')) reveal();
+    if (e >= REVEAL_AT && !root.classList.contains('is-out')) reveal();
     if (e >= EXIT_MS / 1000) {
       resolveDone();
       return;
@@ -190,20 +169,22 @@ export function startLoader(): Loader {
     // Muelles con subpasos (estables aunque el fotograma llegue tarde)
     for (let i = 0, n = Math.ceil(dt / (1 / 240)); i < n; i++) {
       const h = dt / n;
-      hole.step(h);
+      grow.step(h);
       y.step(h);
       spin.step(h);
       tilt.step(h);
     }
 
-    holeR.value = HOLE_R * Math.max(0, hole.x);
-    cup.scale.set(Math.max(0.001, holeR.value), 1, Math.max(0.001, holeR.value));
-    cup.visible = holeR.value > 0.002;
-    hanger.position.y = y.x;
-    hanger.rotation.set(0, spin.x, tilt.x * 0.12);
+    const k = Math.max(0.001, grow.x);
     // Se estira al subir rápido y se aplasta al frenar (como un `scaleY` ligado a la velocidad)
     const sy = 1 + THREE.MathUtils.clamp(y.v * 0.045, -0.12, 0.18);
-    hanger.scale.set(1 / Math.sqrt(sy), sy, 1 / Math.sqrt(sy));
+    hanger.scale.set(k / Math.sqrt(sy), k * sy, k / Math.sqrt(sy));
+    hanger.position.y = y.x;
+    hanger.rotation.set(0, spin.x, tilt.x * 0.12);
+    // Sombra: la base de la percha está ~0,14 m bajo su origen
+    const lift = Math.max(0, y.x - 0.14);
+    shadow.scale.setScalar(k * (1.2 - Math.min(0.6, lift)));
+    (shadow.material as THREE.MeshBasicMaterial).opacity = Math.min(1, k) * Math.max(0, 1 - lift * 1.2);
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   };
@@ -215,16 +196,15 @@ export function startLoader(): Loader {
       removeEventListener('resize', resize);
       pmrem.dispose();
       scene.environment?.dispose();
-      for (const m of [ground, wallMesh, linerMesh, bottom]) {
-        m.geometry.dispose();
-        (m.material as THREE.Material).dispose();
-      }
+      shadow.geometry.dispose();
+      (shadow.material as THREE.Material).dispose();
+      shadowTex.dispose();
       // De la percha solo la geometría: sus materiales son los del perchero
       hanger.traverse((o) => o instanceof THREE.Mesh && o.geometry.dispose());
       renderer.dispose();
       renderer.forceContextLoss();
       remove();
-    }, 250);
+    }, 50);
   });
 
   return {
