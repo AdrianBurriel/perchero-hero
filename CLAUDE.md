@@ -49,6 +49,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - `src/ui/switcher.ts`: selector Perchero | Shop the look en el centro de la barra superior. La pastilla
   se desliza a la opción elegida antes de navegar y en la página nueva sale desde la anterior
   (sessionStorage); en hover se estira hacia la opción inactiva.
+- `src/ui/stock.ts`: contador «N prendas en percha» de la barra superior, alimentado por
+  `RackHero` (`onStock`). Al cambiar, el número rueda y flota un «−1»/«+1».
 - `src/style.css`: sistema visual común. Tipografías Instrument Serif (títulos) e Inter (texto) desde Google Fonts.
 - `src/garments.ts`: catálogo ficticio con `id` y `price` (€) (`garments` = portada, `lookGarments` = prendas de los looks;
   `byId(id)` busca en ambos).

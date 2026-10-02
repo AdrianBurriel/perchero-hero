@@ -29,6 +29,7 @@ export interface RackOptions {
   onOpen?: (index: number) => void;   // si se da, el detalle lo muestra la página y no el perchero
   onAddToCart?: (index: number) => void; // botón "Añadir a la cesta" de la ficha del perchero
   gone?: (index: number) => boolean;      // prendas que empiezan fuera del perchero (ya en la cesta)
+  onStock?: (hanging: number) => void;    // nº de prendas colgadas (al empezar y cada vez que cambia)
 }
 
 interface Item {
@@ -116,7 +117,8 @@ export class RackHero {
     this.stage = createStage(this.el.canvas, { mount: opts.mount ?? 'wall', railHalf, transparent: opts.transparent });
 
     this.items = garments.map((data, i) => this.mountItem(data, i, (i - (garments.length - 1) / 2) * spacing));
-    this.items.forEach((it, i) => opts.gone?.(i) && this.takeOff(it));
+    this.items.forEach((it, i) => opts.gone?.(i) && this.takeOff(it, false));
+    this.notifyStock();
     this.bindEvents();
     this.select(this.selected);
     this.step(0, true); // arranca ya en su sitio: la seleccionada de frente, sin animación inicial
@@ -217,10 +219,16 @@ export class RackHero {
     it.restock = this.reduceMotion ? 1 : 0;
     it.turner.add(it.body);
     this.select(this.selected);
+    this.notifyStock();
   }
 
-  private takeOff(it: Item) {
+  private notifyStock() {
+    this.opts.onStock?.(this.items.filter((it) => !it.gone).length);
+  }
+
+  private takeOff(it: Item, notify = true) {
     it.gone = true;
+    if (notify) queueMicrotask(() => this.notifyStock());
     it.btn.disabled = true;
     it.turner.remove(it.body);
     if (this.hovered === it) this.hovered = null;

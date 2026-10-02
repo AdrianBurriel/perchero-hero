@@ -73,6 +73,60 @@ button { font: inherit; color: inherit; }
 .topbar > :first-child { justify-self: start; }
 .topbar > :last-child { justify-self: end; }
 .topbar--over { position: absolute; inset: 0 0 auto 0; z-index: 1; pointer-events: none; }
+/* ---------- Contador de prendas colgadas ---------- */
+.stock { position: relative; display: inline-flex; }
+/* Rodillo: deja ver una sola cifra; las que entran y salen se cruzan en vertical */
+.stock__roll {
+  display: inline-grid;
+  overflow: hidden;
+  height: 1.3em;
+  line-height: 1.3em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.stock__num { grid-area: 1 / 1; text-align: right; }
+.stock__num.is-in { animation: 0.5s var(--ease) both; }
+.stock__num.is-out { animation: 0.5s var(--ease) both; }
+.stock__num.from-below { animation-name: roll-in-up; }
+.stock__num.to-above { animation-name: roll-out-up; }
+.stock__num.from-above { animation-name: roll-in-down; }
+.stock__num.to-below { animation-name: roll-out-down; }
+@keyframes roll-in-up { from { transform: translateY(100%); opacity: 0; } }
+@keyframes roll-out-up { to { transform: translateY(-100%); opacity: 0; } }
+@keyframes roll-in-down { from { transform: translateY(-100%); opacity: 0; } }
+@keyframes roll-out-down { to { transform: translateY(100%); opacity: 0; } }
+/* Aviso "−1" / "+1": aparece sobre el número; "−1" se eleva y "+1" cae hacia él */
+.stock__delta {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  margin-bottom: 1px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+}
+.stock__delta.is-show.is-down { animation: delta-float-up 1.2s var(--ease) both; }
+.stock__delta.is-show.is-up { animation: delta-float-down 1.2s var(--ease) both; }
+@keyframes delta-float-up {
+  0% { opacity: 0; transform: translate(-50%, 6px); }
+  20% { opacity: 1; transform: translate(-50%, 0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -8px); }
+}
+@keyframes delta-float-down {
+  0% { opacity: 0; transform: translate(-50%, -8px); }
+  20% { opacity: 1; transform: translate(-50%, -2px); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, 6px); }
+}
+.stock__noun { transition: color 0.3s var(--ease); }
+/* Al cambiar, el texto se aviva un instante y vuelve al gris de la barra */
+.topbar__crumb.is-changed { animation: crumb-flash 1.2s var(--ease); }
+@keyframes crumb-flash { 15% { color: var(--ink); } }
+
 /* ---------- Selector de sección ---------- */
 .switch {
   --x: 0px;

@@ -6,6 +6,7 @@ import { RackHero } from './rack/RackHero';
 import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove } from './ui/cart';
 import { mountSwitch } from './ui/switcher';
+import { mountStock } from './ui/stock';
 
 /* Shop the look: foto del modelo con puntos sobre cada prenda + perchero con esas prendas.
    Puntos, perchero y detalle comparten la prenda activa. */
@@ -118,6 +119,7 @@ const rack = new RackHero($('#look-rack'), garments, {
     setOpen(true);
   },
   gone: (i) => inCart(garments[i]!.id),
+  onStock: mountStock($('#stock'), 'Look 01 · '),
 });
 // Quitar de la cesta la devuelve a su percha
 onCartRemove((id) => {
