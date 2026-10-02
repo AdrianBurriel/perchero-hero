@@ -61,7 +61,7 @@ function render() {
         <div class="drawer__line-info">
           <p class="drawer__line-brand"></p>
           <p class="drawer__line-name"></p>
-          <button class="drawer__remove" type="button">Quitar</button>
+          <button class="drawer__remove" type="button">Devolver al perchero</button>
         </div>
         <div class="drawer__line-meta">
           <p class="drawer__line-price"></p>
@@ -71,7 +71,9 @@ function render() {
       li.querySelector('.drawer__line-name')!.textContent = l.name;
       li.querySelector('.drawer__line-price')!.textContent = formatPrice(l.price * l.qty);
       li.querySelector('.drawer__line-qty')!.textContent = l.qty > 1 ? `${l.qty} × ${formatPrice(l.price)}` : '';
-      li.querySelector('.drawer__remove')!.addEventListener('click', () => remove(l.id));
+      const back = li.querySelector<HTMLElement>('.drawer__remove')!;
+      back.setAttribute('aria-label', `Devolver ${l.name} al perchero`);
+      back.addEventListener('click', () => remove(l.id));
       return li;
     }),
   );
