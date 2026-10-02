@@ -108,11 +108,23 @@ function foldable(mat: THREE.Material, u: FoldUniforms) {
   return m;
 }
 
-/**
- * Pliega `body` (la prenda, ya separada de su percha) y la lleva hasta `to`.
- * Al terminar la prenda queda como estaba (sin pliegues ni padre) para poder volver a colgarla.
- */
-export function packAndFly(body: THREE.Group, from: Launch, to: { x: number; y: number }): Promise<void> {
+/* ---------- Preparación del plegado (común a las dos animaciones) ---------- */
+interface Folding {
+  holder: THREE.Group; // px en pantalla
+  spin: THREE.Group;   // giro alrededor del centro de la prenda doblada
+  cy: number;          // y (m) del centro de la prenda doblada respecto a su origen
+  width: number;       // ancho de la prenda doblada (m)
+  depth: number;       // grosor de la prenda doblada (m)
+  height: number;      // alto de la prenda doblada (m)
+  /** Mangas y doblez según `ms` desde que empieza a plegarse. */
+  fold(ms: number): void;
+  /** Coloca el centro de la prenda doblada en (x, y) px con escala `s` px/m. */
+  place(x: number, y: number, s: number): void;
+  /** Deshace todo: la prenda vuelve a su estado original y sin padre. */
+  teardown(): void;
+}
+
+function prepare(body: THREE.Group): Folding {
   ensure();
   body.position.set(0, 0, 0);
   body.rotation.set(0, 0, 0);
@@ -167,10 +179,8 @@ export function packAndFly(body: THREE.Group, from: Launch, to: { x: number; y: 
     hinges.push({ group, sign, members, px });
   }
 
-  // Centro de la prenda ya doblada: sobre él gira durante el vuelo
-  const cy = (top + foldY) / 2;
-
   // Jerarquía: holder (px en pantalla) → center (centro de la prenda doblada) → spin → pack
+  const cy = (top + foldY) / 2;
   const holder = new THREE.Group();
   const center = new THREE.Group();
   const spin = new THREE.Group();
@@ -183,44 +193,29 @@ export function packAndFly(body: THREE.Group, from: Launch, to: { x: number; y: 
   holder.add(center);
   scene.add(holder);
 
-  const start = performance.now();
-  const fromCenter = { x: from.x, y: from.y - cy * from.scale }; // centro de la prenda doblada en pantalla
-  const ctrl = { x: (fromCenter.x + to.x) / 2, y: Math.max(TOP_MARGIN, Math.min(fromCenter.y, to.y) - ARC) };
-
-  return new Promise((resolve) => {
-    run((now) => {
-      const ms = now - start;
-
-      const lift = easeOut(phase(ms, T.lift));
-      spin.rotation.y = from.rotY * (1 - lift);
-      let s = from.scale * (1 + 0.04 * lift);
-      let cx = fromCenter.x;
-      let cyPx = fromCenter.y - LIFT_PX * lift;
-
+  return {
+    holder,
+    spin,
+    cy,
+    width: bodyBox.max.x - bodyBox.min.x,
+    depth: thick * 4,
+    height: top - foldY,
+    fold(ms) {
       const sl = easeInOut(phase(ms, T.sleeves));
       for (const hg of hinges) {
         hg.group.rotation.y = hg.sign * (Math.PI - 0.06) * sl;
-        hg.group.position.z = -thick * 1.6 * sl; // se recogen por detrás del cuerpo
+        // Se recogen por detrás del cuerpo y se aplanan para quedar dentro del grosor de la
+        // prenda doblada (si no, asoman por debajo cuando se tumba en el montón)
+        hg.group.position.z = -thick * 1.2 * sl;
+        hg.group.scale.z = 1 - 0.6 * sl;
       }
       uBody.uFold.value = uSleeve.uFold.value = easeInOut(phase(ms, T.fold));
-
-      const f = phase(ms, T.fly);
-      if (f > 0) {
-        const e = easeInOut(f);
-        const u = 1 - e;
-        const sx = fromCenter.x, sy = fromCenter.y - LIFT_PX;
-        cx = u * u * sx + 2 * u * e * ctrl.x + e * e * to.x;
-        cyPx = u * u * sy + 2 * u * e * ctrl.y + e * e * to.y;
-        s *= 1 - (1 - END_SCALE) * Math.pow(e, 1.5);
-        spin.rotation.set(-0.2 * Math.sin(Math.PI * f), e * Math.PI * 2, 0.25 * Math.sin(Math.PI * f));
-      }
-
-      // holder en el raíl: el centro de la prenda doblada queda en (cx, cyPx)
-      holder.position.set(cx, -(cyPx + cy * s), 0);
+    },
+    place(x, y, s) {
+      holder.position.set(x, -(y + cy * s), 0);
       holder.scale.setScalar(s);
-
-      if (f < 1) return true;
-      // Fin: se desmonta todo y la prenda vuelve a su estado original (sin padre)
+    },
+    teardown() {
       scene.remove(holder);
       pack.remove(body);
       for (const hg of hinges) {
@@ -240,8 +235,140 @@ export function packAndFly(body: THREE.Group, from: Launch, to: { x: number; y: 
         (m.material as THREE.Material).dispose();
         m.material = mat;
       }
+    },
+  };
+}
+
+type Point = { x: number; y: number };
+
+/** Punto de un arco cuadrático entre `a` y `b` que sube hasta `lift` px (sin salirse por arriba). */
+function arc(a: Point, b: Point, e: number, lift = ARC): Point {
+  const c = { x: (a.x + b.x) / 2, y: Math.max(TOP_MARGIN, Math.min(a.y, b.y) - lift) };
+  const u = 1 - e;
+  return { x: u * u * a.x + 2 * u * e * c.x + e * e * b.x, y: u * u * a.y + 2 * u * e * c.y + e * e * b.y };
+}
+
+/**
+ * Pliega `body` (la prenda, ya separada de su percha) y la lleva hasta `to`.
+ * Al terminar la prenda queda como estaba (sin pliegues ni padre) para poder volver a colgarla.
+ */
+export function packAndFly(body: THREE.Group, from: Launch, to: Point): Promise<void> {
+  const f0 = prepare(body);
+  const start = performance.now();
+  const fromCenter = { x: from.x, y: from.y - f0.cy * from.scale }; // centro de la prenda doblada en pantalla
+
+  return new Promise((resolve) => {
+    run((now) => {
+      const ms = now - start;
+      const lift = easeOut(phase(ms, T.lift));
+      f0.spin.rotation.y = from.rotY * (1 - lift);
+      let s = from.scale * (1 + 0.04 * lift);
+      let p: Point = { x: fromCenter.x, y: fromCenter.y - LIFT_PX * lift };
+      f0.fold(ms);
+
+      const f = phase(ms, T.fly);
+      if (f > 0) {
+        const e = easeInOut(f);
+        p = arc({ x: fromCenter.x, y: fromCenter.y - LIFT_PX }, to, e);
+        s *= 1 - (1 - END_SCALE) * Math.pow(e, 1.5);
+        f0.spin.rotation.set(-0.2 * Math.sin(Math.PI * f), e * Math.PI * 2, 0.25 * Math.sin(Math.PI * f));
+      }
+      f0.place(p.x, p.y, s);
+
+      if (f < 1) return true;
+      f0.teardown();
       resolve();
       return false;
     });
+  });
+}
+
+/* ---------- Comprar el look: montón de ropa doblada y, después, a la cesta de una en una ---------- */
+const PILE = {
+  stagger: 160,    // ms entre que empieza a plegarse una prenda y la siguiente
+  travel: 620,     // ms del viaje de cada prenda doblada hasta el montón
+  rest: 420,       // ms de pausa con el montón completo
+  gap: 380,        // ms entre que sale una prenda del montón y la siguiente
+  fly: 860,        // ms de cada vuelo a la cesta
+  tilt: 0.42,      // rad: inclinación de la cara superior hacia el espectador
+} as const;
+
+/**
+ * Pliega todas las prendas a la vez (escalonadas), las apila tumbadas en `pile` (base del
+ * montón, px) y luego las manda a `to` de una en una, de arriba abajo. `onLand(k)` avisa
+ * cuando aterriza la k-ésima de `items`.
+ */
+export function pileAndFly(items: { body: THREE.Group; from: Launch }[], pile: Point, to: Point, onLand: (k: number) => void): Promise<void> {
+  const jobs = items.map(({ body, from }, k) => ({ k, from, f: prepare(body) }));
+  // Las más anchas abajo; un poco de desorden para que parezca ropa apilada a mano
+  const stack = [...jobs].sort((a, b) => b.f.width - a.f.width);
+  const lay = -(Math.PI / 2 - PILE.tilt); // tumbada: la cara delantera mira hacia arriba
+  const slot = new Map<number, { x: number; y: number; ry: number; rz: number }>();
+  const scale = jobs[0]?.from.scale ?? 1;
+  let height = 0;
+  stack.forEach((j, level) => {
+    // Centro de la pieza apilada: la base de esta capa más medio grosor
+    const y = pile.y - (height + (j.f.depth * Math.cos(PILE.tilt)) / 2) * scale;
+    height += j.f.depth * Math.cos(PILE.tilt) * 0.92;
+    const r = Math.sin(level * 12.9898 + j.k * 78.233);
+    slot.set(j.k, { x: pile.x + r * 8, y, ry: r * 0.12, rz: r * 0.03 });
+  });
+  const foldEnd = T.fold[1];
+  const arriveLast = (jobs.length - 1) * PILE.stagger + foldEnd + PILE.travel;
+  const leaveAt = arriveLast + PILE.rest;
+  // Sale primero la de arriba del montón
+  const order = [...stack].reverse().map((j) => j.k);
+  const start = performance.now();
+
+  return new Promise((resolve) => {
+    let landed = 0;
+    for (const j of jobs) {
+      const from = j.from;
+      const fromCenter = { x: from.x, y: from.y - j.f.cy * from.scale };
+      const at = slot.get(j.k)!;
+      const t0 = j.k * PILE.stagger;
+      const tLeave = leaveAt + order.indexOf(j.k) * PILE.gap;
+      run((now) => {
+        const ms = now - start - t0;
+        if (ms < 0) {
+          j.f.place(fromCenter.x, fromCenter.y, from.scale);
+          j.f.spin.rotation.y = from.rotY;
+          return true;
+        }
+        // 1. Se separa de la percha y se pliega en su sitio
+        const lift = easeOut(phase(ms, T.lift));
+        let p: Point = { x: fromCenter.x, y: fromCenter.y - LIFT_PX * lift };
+        let s = from.scale;
+        j.f.spin.rotation.set(0, from.rotY * (1 - lift), 0);
+        j.f.fold(ms);
+
+        // 2. Viaja al montón y se tumba
+        const g = phase(ms, [foldEnd, foldEnd + PILE.travel]);
+        if (g > 0) {
+          const e = easeInOut(g);
+          p = arc({ x: fromCenter.x, y: fromCenter.y - LIFT_PX }, at, e, 60);
+          s = from.scale + (scale - from.scale) * e;
+          j.f.spin.rotation.set(lay * e, at.ry * e, at.rz * e);
+          // Pequeño asentamiento al caer sobre el montón
+          if (g >= 1) p.y += Math.sin(Math.min(1, (ms - foldEnd - PILE.travel) / 180) * Math.PI) * 3;
+        }
+
+        // 3. Del montón a la cesta
+        const fl = clamp01((now - start - tLeave) / PILE.fly);
+        if (fl > 0) {
+          const e = easeInOut(fl);
+          p = arc(at, to, e);
+          s = scale * (1 - (1 - END_SCALE) * Math.pow(e, 1.5));
+          j.f.spin.rotation.set(lay * (1 - e) - 0.2 * Math.sin(Math.PI * fl), at.ry + e * Math.PI * 2, at.rz + 0.25 * Math.sin(Math.PI * fl));
+        }
+        j.f.place(p.x, p.y, s);
+
+        if (fl < 1) return true;
+        j.f.teardown();
+        onLand(j.k);
+        if (++landed === jobs.length) resolve();
+        return false;
+      });
+    }
   });
 }

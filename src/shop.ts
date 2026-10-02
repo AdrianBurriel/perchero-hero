@@ -7,6 +7,7 @@ import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove } from './ui/cart';
 import { mountSwitch } from './ui/switcher';
 import { mountStock } from './ui/stock';
+import { pileAndFly } from './ui/flyer';
 
 /* Shop the look: foto del modelo con puntos sobre cada prenda + perchero con esas prendas.
    Puntos, perchero y detalle comparten la prenda activa. */
@@ -29,8 +30,25 @@ const updateBuy = () => {
   buy.disabled = all;
   buy.textContent = all ? 'Look en la cesta' : 'Comprar el look';
 };
+// Comprar el look: todas se pliegan y forman un montón de ropa doblada en el centro del
+// perchero; después van a la cesta de una en una
 buy.addEventListener('click', () => {
-  garments.forEach((g, i) => setTimeout(() => send(i), i * 240));
+  const picked = garments.map((_, i) => ({ i, out: rack.detach(i) })).filter((p) => p.out);
+  if (!picked.length) return;
+  const land = (i: number) => {
+    addToCart(garments[i]!);
+    showDetail(current);
+    updateBuy();
+  };
+  if (rack.prefersReducedMotion) return picked.forEach((p) => land(p.i));
+  buy.disabled = true;
+  const r = rack.rect;
+  pileAndFly(
+    picked.map((p) => ({ body: p.out!.body, from: p.out!.launch })),
+    { x: r.left + r.width / 2, y: r.top + r.height * 0.7 },
+    cartTarget(),
+    (k) => land(picked[k]!.i),
+  );
 });
 
 /* ---------- Foto ---------- */

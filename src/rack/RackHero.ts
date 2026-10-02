@@ -3,7 +3,7 @@ import type { GarmentData } from '../garments';
 import { createStage, createHanger, type Mount } from '../stage';
 import { buildGarment } from '../garment/builders';
 import { cardHTML, fillCard, bindCardCta } from '../ui/productCard';
-import { packAndFly } from '../ui/flyer';
+import { packAndFly, type Launch } from '../ui/flyer';
 
 /* Perchero interactivo reutilizable: crea su propio DOM (lienzo, flechas, detalle)
    dentro del contenedor, sin dependencias globales. Lo usan la portada y Shop the look. */
@@ -189,8 +189,19 @@ export class RackHero {
    * Devuelve false si ya no estaba colgada.
    */
   sendToCart(i: number, to: { x: number; y: number }): Promise<boolean> {
+    const out = this.detach(i);
+    if (!out) return Promise.resolve(false);
+    if (this.reduceMotion) return Promise.resolve(true);
+    return packAndFly(out.body, out.launch, to).then(() => true);
+  }
+
+  /**
+   * Saca la prenda del perchero (queda la percha vacía) y devuelve la prenda con su posición
+   * en pantalla, para que otra animación se haga cargo. null si ya no estaba colgada.
+   */
+  detach(i: number): { body: THREE.Group; launch: Launch } | null {
     const it = this.items[i];
-    if (!it || it.gone) return Promise.resolve(false);
+    if (!it || it.gone) return null;
     const { camera } = this.stage;
     // Origen de la prenda (punto del raíl) en pantalla y px por metro a esa profundidad
     const origin = it.body.getWorldPosition(new THREE.Vector3());
@@ -206,8 +217,16 @@ export class RackHero {
     this.takeOff(it);
     if (this.items[this.selected] === it) this.select(this.selected, 1);
     this.render(); // la prenda desaparece del perchero en el mismo fotograma en que aparece en la capa
-    if (this.reduceMotion) return Promise.resolve(true);
-    return packAndFly(it.body, launch, to).then(() => true);
+    return { body: it.body, launch };
+  }
+
+  /** Caja del lienzo del perchero en pantalla. */
+  get rect() {
+    return this.el.canvas.getBoundingClientRect();
+  }
+
+  get prefersReducedMotion() {
+    return this.reduceMotion;
   }
 
   /** Vuelve a colgar una prenda que estaba fuera (p. ej. al quitarla de la cesta). */
