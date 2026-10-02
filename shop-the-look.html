@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shop the look · prototipo</title>
+  </head>
+  <body>
+    <header class="page-head">
+      <a class="page-head__back" href="/"><span aria-hidden="true">←</span> Perchero</a>
+      <p class="page-head__crumb">Estudio / Shop the look</p>
+    </header>
+    <main class="look">
+      <div class="look__intro">
+        <h1 class="look__title" id="look-title"></h1>
+        <p class="look__subtitle" id="look-subtitle"></p>
+      </div>
+      <figure class="look__photo">
+        <img id="look-img" alt="" />
+        <!-- Un punto por prenda: selecciona esa prenda en el burro -->
+        <div class="look__spots" id="look-spots"></div>
+      </figure>
+      <section class="look__rack" id="look-rack" aria-label="Burro con las prendas del look"></section>
+    </main>
+    <script type="module" src="/src/shop.ts"></script>
+  </body>
+</html>

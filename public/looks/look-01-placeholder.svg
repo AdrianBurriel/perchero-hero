@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000">
+  <!-- Ilustración provisional: sustitúyela por la foto propia en public/looks/look-01.jpg -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e3ddd2"/><stop offset="1" stop-color="#cfc7b9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <ellipse cx="400" cy="950" rx="190" ry="22" fill="#000" opacity=".08"/>
+  <!-- piernas -->
+  <path d="M330 600 L318 930 L372 930 L398 640 L424 930 L478 930 L468 600 Z" fill="#3b3a38"/>
+  <!-- cabeza y cuello -->
+  <circle cx="400" cy="130" r="54" fill="#c9b49c"/>
+  <rect x="384" y="176" width="32" height="34" fill="#c9b49c"/>
+  <!-- jersey al hombro -->
+  <path d="M430 200 Q520 190 560 230 L548 300 Q500 250 440 240 Z" fill="#e6dcc6"/>
+  <!-- camiseta / camisa / cazadora -->
+  <path d="M300 230 L400 205 L500 230 L560 470 L515 480 L505 610 L295 610 L285 480 L240 470 Z" fill="#27406b"/>
+  <path d="M362 214 L400 205 L438 214 L428 610 L372 610 Z" fill="#5b82b5"/>
+  <path d="M386 210 L400 206 L414 210 L408 290 L392 290 Z" fill="#f2f0ea"/>
+  <text x="400" y="770" text-anchor="middle" font-family="system-ui, sans-serif" font-size="22" fill="#6b6a65">Foto del look</text>
+  <text x="400" y="802" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#8a8780">public/looks/look-01.jpg</text>
+</svg>

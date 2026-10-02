@@ -18,22 +18,32 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - Prendas y tejidos **procedurales** (sin assets externos), inventados: camisetas, camisas, jersey,
   sudadera, cazadoras (denim, cuero, plumífero), sobrecamisa de pana, lino.
 
+## Páginas
+- `index.html` → `src/main.ts`: portada con perchero de pared y todo el catálogo. Enlaza a Shop the look.
+- `shop-the-look.html` → `src/shop.ts`: foto del modelo con puntos por prenda + burro de suelo con las
+  prendas del look. Puntos y burro comparten la prenda activa (hover = previsualizar, clic = detalle).
+- Multipágina declarada en `vite.config.ts` (`build.rollupOptions.input`).
+
 ## Estructura
-- `src/main.ts`: parámetros, física, entrada (raycast), bucle y detalle.
-- `src/stage.ts`: renderer, cámara, luces, pared, raíl y percha (gancho giratorio + barra de madera).
+- `src/rack/RackHero.ts`: clase `RackHero(container, prendas, opciones)` reutilizable y sin globales.
+  Crea su DOM (lienzo, flechas, contador, detalle). Opciones: `mount` (`'wall'` | `'floor'`),
+  `spacing`, `push`, `initial`, `onChange`. Métodos públicos: `select(i)`, `preview(i|null)`, `openDetail(i)`.
+- `src/stage.ts`: renderer, cámara, luces, pared, raíl de pared o burro (postes, base, ruedas, suelo) y percha.
 - `src/garment/pillow.ts`: malla "acolchada" a partir de una silueta 2D (dos caras cosidas en el canto).
 - `src/garment/builders.ts`: patrones y montaje de cada tipo de prenda (mangas, cuellos, botones…).
 - `src/garment/fabrics.ts`: texturas procedurales (color + normal map) por tipo de tejido.
-- `src/garments.ts`: catálogo ficticio (nombre, marca, material, tejido, colores).
+- `src/garments.ts`: catálogo ficticio con `id` (`byId(id)` para buscar).
+- `src/looks.ts`: looks (foto, texto y prendas con posición del punto en % sobre la foto).
+- `public/looks/`: fotos propias de los looks. Falta `look-01.jpg`; mientras, se ve `look-01-placeholder.svg`.
 
-## Movimiento (`src/main.ts`)
+## Movimiento (`src/rack/RackHero.ts`)
 - Sin balanceo (como la referencia): las prendas están quietas y de lado (`SIDE_ANGLE`).
 - La prenda activa (hover por raycast o foco con Tab) gira de frente y las vecinas se apartan
   (`PUSH`, `PUSH_FALLOFF`), con muelles críticamente amortiguados (`TURN_STIFF`, `TURN_DAMP`).
 - Slider: flechas ‹ › (y teclas ← →) cambian la prenda seleccionada, que gira de frente en su sitio
   (las perchas no se desplazan para centrarla). Hover y foco previsualizan otra prenda.
 - La cámara encaja siempre el perchero entero (raíl y soportes, `RAIL_HALF`).
-- Paso fijo de 1/120 s con acumulador. Parámetros al inicio de `main.ts`.
+- Paso fijo de 1/120 s con acumulador. Parámetros al inicio de `src/rack/RackHero.ts`.
 - El péndulo con viento y retraso de tela existió en commits anteriores (ver historial de git).
 
 ## Tareas sugeridas (en orden)
@@ -44,7 +54,7 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 5. Soporte táctil: impulso por swipe con `pointermove`; probar en móvil.
 6. Más realismo en las prendas: pliegues, costuras visibles, ambient occlusion, o modelos GLB propios.
 7. Rendimiento: comprobar 60 fps; pausar el bucle fuera de viewport (IntersectionObserver).
-8. Portar a Shopify: encapsular en una clase `RackHero(container, items)` sin dependencias globales.
+8. Portar a Shopify: `RackHero` ya está encapsulada; falta montarla en una sección del tema.
 
 ## Criterios de aceptación
 - 60 fps con 11 prendas en un portátil medio y en móvil de gama media.
