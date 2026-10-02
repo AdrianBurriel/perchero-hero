@@ -30,6 +30,7 @@ export interface RackOptions {
   onAddToCart?: (index: number) => void; // botón "Añadir a la cesta" de la ficha del perchero
   gone?: (index: number) => boolean;      // prendas que empiezan fuera del perchero (ya en la cesta)
   onStock?: (hanging: number, total: number) => void; // colgadas / perchas (al empezar y cada vez que cambia)
+  onRefill?: () => void; // botón «Rellenar perchero» (aparece cuando no queda ninguna colgada)
 }
 
 interface Item {
@@ -62,6 +63,10 @@ const TEMPLATE = `
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6" /></svg>
     </button>
   </nav>
+  <button class="rack__refill" type="button" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.7-5.6M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6M4 20v-4.5h4.5" /></svg>
+    Rellenar perchero
+  </button>
   <aside class="detail" role="dialog" hidden></aside>`;
 
 let uid = 0;
@@ -121,6 +126,7 @@ export class RackHero {
     this.items.forEach((it, i) => opts.gone?.(i) && this.takeOff(it, false));
     this.notifyStock();
     this.bindEvents();
+    container.querySelector('.rack__refill')!.addEventListener('click', () => opts.onRefill?.());
     this.select(this.selected);
     this.step(0, true); // arranca ya en su sitio: la seleccionada de frente, sin animación inicial
 
@@ -251,7 +257,14 @@ export class RackHero {
   }
 
   private notifyStock() {
-    this.opts.onStock?.(this.items.filter((it) => !it.gone).length, this.items.length);
+    const hanging = this.items.filter((it) => !it.gone).length;
+    this.opts.onStock?.(hanging, this.items.length);
+    // Perchero vacío: aparece «Rellenar perchero» donde va el nombre de la prenda
+    const refill = this.container.querySelector<HTMLButtonElement>('.rack__refill')!;
+    const empty = hanging === 0 && !!this.opts.onRefill;
+    if (empty === !refill.hidden) return;
+    refill.hidden = !empty;
+    this.container.classList.toggle('is-empty', empty);
   }
 
   private takeOff(it: Item, notify = true) {

@@ -4,7 +4,7 @@ import { byId } from './garments';
 import { looks } from './looks';
 import { RackHero } from './rack/RackHero';
 import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
-import { mountCart, cartTarget, addToCart, inCart, onCartRemove } from './ui/cart';
+import { mountCart, cartTarget, addToCart, inCart, onCartRemove, removeFromCart } from './ui/cart';
 import { mountSwitch } from './ui/switcher';
 import { mountStock } from './ui/stock';
 
@@ -23,11 +23,18 @@ $('#look-subtitle').textContent = look.subtitle;
 $('#look-count').textContent = `${garments.length} prendas`;
 $('#look-total').textContent = formatPrice(garments.reduce((s, g) => s + g.price, 0));
 const buy = $<HTMLButtonElement>('#buy-look');
+const returnLook = $<HTMLButtonElement>('#return-look');
 const updateBuy = () => {
   const all = garments.every((g) => inCart(g.id));
   buy.disabled = all;
   buy.textContent = all ? 'Look en la cesta' : 'Comprar el look';
+  returnLook.hidden = !all;
 };
+// Devolver al perchero: cada prenda vuelve a su percha (y sale de la cesta), una tras otra
+returnLook.addEventListener('click', () => {
+  returnLook.hidden = true;
+  garments.forEach((g, i) => setTimeout(() => removeFromCart(g.id), i * 160));
+});
 // Comprar el look: las prendas se pliegan y van a la cesta de una en una; la siguiente sale
 // cuando la anterior va por la mitad del vuelo (ya lejos del perchero), así no se cruzan
 const BUY_SPEED = 1.8;

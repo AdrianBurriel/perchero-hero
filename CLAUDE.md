@@ -47,7 +47,10 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   `RackHero.restore(i)` la vuelve a colgar (al quitarla de la cesta).
   En Shop the look, «Comprar el look» manda las prendas de una en una: la siguiente sale cuando
   la anterior va por la mitad del vuelo (`sendToCart(i, destino, BUY_SPEED, onHalfway)`) y
-  `setIdle(true)` deja quietas las que esperan. Opción `gone` para empezar sin
+  `setIdle(true)` deja quietas las que esperan.
+  Con el look entero en la cesta aparece el enlace «Devolver al perchero» bajo «Look en la cesta».
+  En la portada, con el perchero vacío, aparece el botón «Rellenar perchero» (`onRefill`).
+  Ambos devuelven las prendas a sus perchas una tras otra y las sacan de la cesta (`removeFromCart`). Opción `gone` para empezar sin
   las prendas que ya están en la cesta.
 - `src/ui/switcher.ts`: selector Perchero | Shop the look en el centro de la barra superior. La pastilla
   se desliza a la opción elegida antes de navegar y en la página nueva sale desde la anterior

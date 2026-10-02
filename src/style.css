@@ -259,6 +259,41 @@ button { font: inherit; color: inherit; }
 .rack__arrow:disabled { opacity: 0.25; cursor: default; }
 .rack__arrow svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
 
+/* Perchero vacío: botón para devolver todo a las perchas, donde va el nombre de la prenda */
+.rack__refill {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--gutter) - 6px);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 22px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transform: translateX(-50%);
+  animation: refill-in 0.6s var(--ease) 0.25s both;
+  transition: background 0.25s var(--ease), color 0.25s var(--ease);
+}
+.rack__refill[hidden] { display: none; }
+.rack__refill svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.5s var(--ease); }
+.rack__refill:hover { background: var(--ink); color: var(--paper); }
+.rack__refill:hover svg { transform: rotate(180deg); }
+@keyframes refill-in { from { opacity: 0; transform: translate(-50%, 10px); } }
+/* Con el perchero vacío no hay nombre de prenda: el botón ocupa su sitio */
+.rack.is-empty .rack__caption { opacity: 0; }
+.hero .rack__refill { bottom: calc(var(--gutter) + 28px); }
+@media (max-width: 640px) {
+  .rack__refill, .hero .rack__refill { bottom: calc(var(--gutter) + 52px); }
+}
+
 /* Detalle dentro del perchero (portada): a la izquierda, sin tapar las flechas */
 .detail {
   position: absolute;
@@ -504,6 +539,23 @@ button { font: inherit; color: inherit; }
 .look__subtitle { margin-top: 10px; color: var(--muted); max-width: 46ch; }
 .look__buy { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; flex-shrink: 0; }
 .look__total { display: flex; align-items: baseline; gap: 12px; }
+/* Enlace bajo «Look en la cesta»: aparece con una entrada suave y se subraya al pasar */
+.look__return {
+  padding: 0 0 3px;
+  border: 0;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  animation: return-in 0.5s var(--ease) both;
+  transition: background-size 0.3s var(--ease);
+}
+.look__return:hover { background-size: 0 1px; background-position: 100% 100%; }
+.look__return[hidden] { display: none; }
+@keyframes return-in { from { opacity: 0; transform: translateY(-4px); } }
 .look__total span { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 .look__total strong { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
 
@@ -628,7 +680,8 @@ button { font: inherit; color: inherit; }
     gap: 20px;
   }
   .look__intro { flex-direction: column; align-items: stretch; }
-  .look__buy { flex-direction: row; align-items: center; justify-content: space-between; }
+  .look__buy { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .look__return { margin-left: auto; }
   .look__frame { width: 100%; height: auto; }
   .look__rack { height: clamp(340px, 50svh, 460px); }
 }

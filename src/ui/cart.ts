@@ -83,6 +83,9 @@ function render() {
   drawer.querySelector('.drawer__count')!.textContent = n ? `(${n})` : '';
 }
 
+/** Saca una prenda de la cesta (vuelve a su percha a través de onCartRemove). */
+export const removeFromCart = (id: string) => remove(id);
+
 function remove(id: string) {
   lines = lines.filter((l) => l.id !== id);
   save(lines);
