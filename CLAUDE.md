@@ -48,9 +48,6 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 
 ## Movimiento (`src/rack/RackHero.ts`)
 - Sin balanceo (como la referencia): las prendas están quietas y de lado (`SIDE_ANGLE`).
-- Entrada: al verse en pantalla, las prendas bajan de una en una (izq. → dcha.) y se enganchan de lado
-  (`ENTER_DELAY`, `ENTER_STAGGER`, `ENTER_DURATION`, `ENTER_DROP`); después gira la seleccionada.
-  Con `prefers-reduced-motion` se omite.
 - La prenda activa (hover por raycast o foco con Tab) gira de frente y las vecinas se apartan
   (`PUSH`, `PUSH_FALLOFF`), con muelles críticamente amortiguados (`TURN_STIFF`, `TURN_DAMP`).
 - Slider: flechas ‹ › (y teclas ← →) cambian la prenda seleccionada, que gira de frente en su sitio
