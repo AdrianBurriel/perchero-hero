@@ -17,6 +17,15 @@
         <!-- Un botón por prenda para teclado y lectores de pantalla -->
         <div class="rack__list" id="rail"></div>
         <p class="rack__caption" id="caption" aria-hidden="true"></p>
+        <nav class="rack__nav" aria-label="Pasar prendas">
+          <span class="rack__counter" id="counter" aria-live="polite"></span>
+          <button class="rack__arrow" id="prev" type="button" aria-label="Prenda anterior">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6" /></svg>
+          </button>
+          <button class="rack__arrow rack__arrow--ring" id="next" type="button" aria-label="Prenda siguiente">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6" /></svg>
+          </button>
+        </nav>
       </section>
 
       <aside class="detail" id="detail" role="dialog" aria-labelledby="detail-name" hidden>

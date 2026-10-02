@@ -5,7 +5,7 @@ import { fabricMaterial } from './garment/fabrics';
 /* Escena fija: pared, raíl, luces y cámara. La percha y las prendas se montan en main. */
 
 export const WALL_Z = -0.44;
-export const RAIL_HALF = 1.08;
+export const RAIL_HALF = 1.42; // cabe la fila entera aunque el slider la desplace hasta un extremo
 const FOV = 26;
 const TARGET = new THREE.Vector3(0, -0.4, 0);
 
@@ -34,7 +34,7 @@ export function createStage(canvas: HTMLCanvasElement) {
   key.target.position.set(0, -0.45, WALL_Z);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
-  Object.assign(key.shadow.camera, { left: -1.7, right: 1.7, top: 1.0, bottom: -1.3, near: 0.5, far: 7 });
+  Object.assign(key.shadow.camera, { left: -2.2, right: 2.2, top: 1.0, bottom: -1.3, near: 0.5, far: 7 });
   key.shadow.bias = -0.0004;
   key.shadow.normalBias = 0.012;
   key.shadow.radius = 4;
@@ -46,12 +46,14 @@ export function createStage(canvas: HTMLCanvasElement) {
   // Pared de yeso
   const wallMat = fabricMaterial({ kind: 'plaster', colors: ['#d9d3c7'] }).clone();
   wallMat.sheen = 0;
-  const wall = new THREE.Mesh(new THREE.PlaneGeometry(8, 5), wallMat);
+  // Grande para cubrir el fondo también en pantallas estrechas (cámara lejos)
+  const WALL_W = 40, WALL_H = 24;
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(WALL_W, WALL_H), wallMat);
   wall.position.set(0, -0.6, WALL_Z);
   wall.receiveShadow = true;
   // UV de plano en 0..1: escalar para que el yeso tenga ~1 m por repetición
   const uv = wall.geometry.getAttribute('uv') as THREE.BufferAttribute;
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 8, uv.getY(i) * 5);
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * WALL_W, uv.getY(i) * WALL_H);
   scene.add(wall);
 
   // Raíl cromado con dos brazos a la pared
@@ -72,13 +74,14 @@ export function createStage(canvas: HTMLCanvasElement) {
     scene.add(cap);
   }
 
-  /** Encaja el perchero en el lienzo; en pantallas estrechas se recortan los extremos. */
+  /** Encaja el perchero entero (raíl y soportes) en el lienzo, sea cual sea la proporción. */
   function resize(width: number, height: number) {
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     const t = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-    const halfW = camera.aspect < 1 ? 0.62 : 1.02;
-    const dist = Math.max(0.56 / t, halfW / (t * camera.aspect));
+    const halfW = RAIL_HALF + 0.1;
+    const halfH = 0.56;
+    const dist = Math.max(halfH / t, halfW / (t * camera.aspect));
     camera.position.set(0, TARGET.y + 0.12, dist);
     camera.lookAt(TARGET);
     camera.updateProjectionMatrix();

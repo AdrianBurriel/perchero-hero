@@ -14,6 +14,8 @@ const SPACING = 0.12;    // separación entre perchas en el raíl (m)
 const PUSH = 0.28;       // cuánto se apartan las vecinas (m)
 const PUSH_FALLOFF = 0.3; // las lejanas se apartan menos: el perchero se comprime
 const HOVER_GRACE = 180; // ms sin tocar prenda antes de soltar la activa (evita parpadeo en huecos)
+const SLIDE_STIFF = 26;  // muelle del deslizamiento del slider por el raíl
+const SLIDE_DAMP = 10.2; // = 2·√SLIDE_STIFF: sin rebote
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -27,6 +29,9 @@ const detailBrand = document.querySelector<HTMLElement>('#detail-brand')!;
 const detailMaterial = document.querySelector<HTMLElement>('#detail-material')!;
 const detailText = document.querySelector<HTMLElement>('#detail-text')!;
 const detailClose = document.querySelector<HTMLButtonElement>('#detail-close')!;
+const prevBtn = document.querySelector<HTMLButtonElement>('#prev')!;
+const nextBtn = document.querySelector<HTMLButtonElement>('#next')!;
+const counter = document.querySelector<HTMLElement>('#counter')!;
 
 const { renderer, scene, camera, resize } = createStage(canvas);
 
@@ -44,6 +49,11 @@ interface Item {
 
 let hovered: Item | null = null;
 let focused: Item | null = null;
+// Slider: la prenda seleccionada queda centrada y de frente; las perchas viajan juntas por el raíl
+let selected = Math.floor(garments.length / 2);
+const carriage = new THREE.Group();
+scene.add(carriage);
+let slideV = 0;
 const byMesh = new Map<THREE.Object3D, Item>();
 
 const items: Item[] = garments.map((data, i) => {
@@ -55,7 +65,7 @@ const items: Item[] = garments.map((data, i) => {
   slot.add(hook, turner);
   const baseX = (i - (garments.length - 1) / 2) * SPACING;
   slot.position.x = baseX;
-  scene.add(slot);
+  carriage.add(slot);
 
   const item: Item = {
     data, slot, turner, hit: garment.hit, baseX,
@@ -67,13 +77,35 @@ const items: Item[] = garments.map((data, i) => {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.textContent = `${data.name}, ${data.brand}`;
-  btn.addEventListener('focus', () => (focused = item));
+  btn.addEventListener('focus', () => {
+    focused = item;
+    select(i);
+  });
   btn.addEventListener('blur', () => focused === item && (focused = null));
   btn.addEventListener('click', () => openDetail(item.data, btn));
   list.append(btn);
   return item;
 });
 const hitMeshes = items.flatMap((it) => it.hit);
+carriage.position.x = -items[selected]!.baseX;
+
+function select(i: number) {
+  selected = Math.max(0, Math.min(items.length - 1, i));
+  prevBtn.disabled = selected === 0;
+  nextBtn.disabled = selected === items.length - 1;
+  counter.textContent = `${String(selected + 1).padStart(2, '0')} / ${String(items.length).padStart(2, '0')}`;
+}
+select(selected);
+prevBtn.addEventListener('click', () => select(selected - 1));
+nextBtn.addEventListener('click', () => select(selected + 1));
+addEventListener('keydown', (e) => {
+  if (!detail.hidden || e.altKey || e.metaKey || e.ctrlKey) return;
+  if (e.key === 'ArrowLeft') select(selected - 1);
+  else if (e.key === 'ArrowRight') select(selected + 1);
+  else return;
+  hovered = null; // la flecha manda sobre un hover que se haya quedado
+  e.preventDefault();
+});
 
 /* ---------- Detalle ---------- */
 let returnFocus: HTMLElement | null = null;
@@ -121,13 +153,24 @@ canvas.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointerleave', () => (hovered = null));
 canvas.addEventListener('click', (e) => {
   const item = pick(e);
-  if (item) openDetail(item.data);
+  if (!item) return;
+  select(items.indexOf(item));
+  openDetail(item.data);
 });
 
 /* ---------- Muelles de giro y apartado ---------- */
 function step(dt: number) {
-  const active = hovered ?? focused;
-  const activeIndex = active ? items.indexOf(active) : -1;
+  const active = hovered ?? focused ?? items[selected]!;
+  const activeIndex = items.indexOf(active);
+
+  const slideTarget = -items[selected]!.baseX;
+  if (reduceMotion) {
+    carriage.position.x = slideTarget;
+    slideV = 0;
+  } else {
+    slideV += (SLIDE_STIFF * (slideTarget - carriage.position.x) - SLIDE_DAMP * slideV) * dt;
+    carriage.position.x += slideV * dt;
+  }
   items.forEach((it, i) => {
     // Muelle del giro hacia su objetivo (de frente si está activa)
     const target = it === active ? 1 : 0;
@@ -156,8 +199,8 @@ function apply() {
     it.slot.position.x = it.baseX + it.shift;
     it.turner.rotation.y = (1 - it.turn) * sideRad;
   }
-  const active = hovered ?? focused;
-  const text = active ? `${active.data.name} · ${active.data.brand}` : '';
+  const active = hovered ?? focused ?? items[selected]!;
+  const text = `${active.data.name} · ${active.data.brand}`;
   if (caption.textContent !== text) caption.textContent = text;
 }
 
