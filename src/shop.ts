@@ -28,19 +28,30 @@ const updateBuy = () => {
   buy.disabled = all;
   buy.textContent = all ? 'Look en la cesta' : 'Comprar el look';
 };
-// Comprar el look: las prendas se pliegan y van a la cesta estrictamente de una en una
-// (la siguiente no empieza hasta que aterriza la anterior), un poco más rápidas
-buy.addEventListener('click', async () => {
+// Comprar el look: las prendas se pliegan y van a la cesta de una en una; la siguiente sale
+// cuando la anterior va por la mitad del vuelo (ya lejos del perchero), así no se cruzan
+const BUY_SPEED = 1.8;
+buy.addEventListener('click', () => {
   const left = garments.map((_, i) => i).filter((i) => !inCart(garments[i]!.id));
   if (!left.length) return;
   buy.disabled = true;
   rack.setIdle(true); // las que esperan su turno se quedan quietas, de lado
-  for (const i of left) {
-    if (await rack.sendToCart(i, cartTarget(), 1.4)) addToCart(garments[i]!);
-    showDetail(current);
-  }
-  rack.setIdle(false);
-  updateBuy();
+  let landed = 0;
+  const send = (n: number) => {
+    const i = left[n];
+    if (i === undefined) return;
+    rack
+      .sendToCart(i, cartTarget(), BUY_SPEED, () => send(n + 1))
+      .then((ok) => {
+        if (ok) addToCart(garments[i]!);
+        showDetail(current);
+        if (++landed === left.length) {
+          rack.setIdle(false);
+          updateBuy();
+        }
+      });
+  };
+  send(0);
 });
 
 /* ---------- Foto ---------- */

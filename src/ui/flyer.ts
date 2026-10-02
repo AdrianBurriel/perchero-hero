@@ -246,8 +246,9 @@ function arc(a: Point, b: Point, e: number, lift = ARC): Point {
  * Pliega `body` (la prenda, ya separada de su percha) y la lleva hasta `to`.
  * Al terminar la prenda queda como estaba (sin pliegues ni padre) para poder volver a colgarla.
  */
-export function packAndFly(body: THREE.Group, from: Launch, to: Point, speed = 1): Promise<void> {
+export function packAndFly(body: THREE.Group, from: Launch, to: Point, speed = 1, onHalfway?: () => void): Promise<void> {
   const f0 = prepare(body);
+  let halfway = false;
   const start = performance.now();
   const fromCenter = { x: from.x, y: from.y - f0.cy * from.scale }; // centro de la prenda doblada en pantalla
 
@@ -266,6 +267,11 @@ export function packAndFly(body: THREE.Group, from: Launch, to: Point, speed = 1
         p = arc({ x: fromCenter.x, y: fromCenter.y - LIFT_PX }, to, e);
         s *= 1 - (1 - END_SCALE) * Math.pow(e, 1.5);
         f0.spin.rotation.set(-0.2 * Math.sin(Math.PI * f), e * Math.PI * 2, 0.25 * Math.sin(Math.PI * f));
+        // A mitad de vuelo ya está lejos del perchero: puede salir la siguiente
+        if (f >= 0.5 && !halfway) {
+          halfway = true;
+          onHalfway?.();
+        }
       }
       f0.place(p.x, p.y, s);
 

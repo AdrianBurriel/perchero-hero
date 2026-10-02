@@ -189,11 +189,17 @@ export class RackHero {
    * La prenda sale del perchero (queda la percha vacía), se pliega, se empaqueta y vuela hasta `to`.
    * Devuelve false si ya no estaba colgada.
    */
-  sendToCart(i: number, to: { x: number; y: number }, speed = 1): Promise<boolean> {
+  sendToCart(i: number, to: { x: number; y: number }, speed = 1, onHalfway?: () => void): Promise<boolean> {
     const out = this.detach(i);
-    if (!out) return Promise.resolve(false);
-    if (this.reduceMotion) return Promise.resolve(true);
-    return packAndFly(out.body, out.launch, to, speed).then(() => true);
+    if (!out) {
+      onHalfway?.();
+      return Promise.resolve(false);
+    }
+    if (this.reduceMotion) {
+      onHalfway?.();
+      return Promise.resolve(true);
+    }
+    return packAndFly(out.body, out.launch, to, speed, onHalfway).then(() => true);
   }
 
   /**

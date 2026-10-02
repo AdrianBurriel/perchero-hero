@@ -45,9 +45,9 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   (cámara ortográfica en px). La prenda real sale del perchero, pliega las mangas (piezas marcadas con
   `Kit.sleeve`) y la mitad inferior (deformación en el vertex shader) y vuela en arco. `RackHero.sendToCart(i, destino)` la lanza y deja la percha vacía;
   `RackHero.restore(i)` la vuelve a colgar (al quitarla de la cesta).
-  En Shop the look, «Comprar el look» manda las prendas de una en una: la siguiente empieza
-  cuando aterriza la anterior (`sendToCart(i, destino, 1.4)`, algo más rápido) y `setIdle(true)`
-  deja quietas las que esperan. Opción `gone` para empezar sin
+  En Shop the look, «Comprar el look» manda las prendas de una en una: la siguiente sale cuando
+  la anterior va por la mitad del vuelo (`sendToCart(i, destino, BUY_SPEED, onHalfway)`) y
+  `setIdle(true)` deja quietas las que esperan. Opción `gone` para empezar sin
   las prendas que ya están en la cesta.
 - `src/ui/switcher.ts`: selector Perchero | Shop the look en el centro de la barra superior. La pastilla
   se desliza a la opción elegida antes de navegar y en la página nueva sale desde la anterior
