@@ -2,11 +2,13 @@ import * as THREE from 'three';
 import type { GarmentData } from '../garments';
 import { createStage, createHanger, type Mount } from '../stage';
 import { buildGarment } from '../garment/builders';
-import { cardHTML, fillCard, bindCardCta } from '../ui/productCard';
+import { bindCardCta, formatPrice } from '../ui/productCard';
 import { bagAndFly, packAndFly, type Launch } from '../ui/flyer';
 
-/* Perchero interactivo reutilizable: crea su propio DOM (lienzo, flechas, detalle)
-   dentro del contenedor, sin dependencias globales. Lo usan la portada y Shop the look. */
+/* Perchero interactivo reutilizable: crea su propio DOM (lienzo, flechas, ficha) dentro del
+   contenedor, sin dependencias globales. Lo usan la portada y Shop the look.
+   Sin `onOpen`, la ficha resumida de la prenda seleccionada está siempre a la vista bajo el
+   perchero y pasar por encima de una prenda la selecciona. Con `onOpen`, el detalle lo pone la página. */
 
 /* ---------- Parámetros (afinar a ojo) ---------- */
 // Sin balanceo: como en la referencia, las prendas solo giran de lado a frente
@@ -26,8 +28,8 @@ export interface RackOptions {
   push?: number;     // cuánto se apartan las vecinas de la activa (m)
   initial?: number;  // índice seleccionado al empezar (por defecto, el del medio)
   onChange?: (index: number) => void; // prenda activa (seleccionada o en hover)
-  onOpen?: (index: number) => void;   // si se da, el detalle lo muestra la página y no el perchero
-  onAddToCart?: (index: number) => void; // botón "Añadir a la cesta" de la ficha del perchero
+  onOpen?: (index: number) => void;   // si se da, el detalle lo muestra la página (sin ficha fija)
+  onAddToCart?: (index: number) => void; // botón "Añadir a la cesta" de la ficha fija
   gone?: (index: number) => boolean;      // prendas que empiezan fuera del perchero (ya en la cesta)
   onStock?: (hanging: number, total: number) => void; // colgadas / perchas (al empezar y cada vez que cambia)
   onRefill?: () => void; // botón «Rellenar perchero» (aparece cuando no queda ninguna colgada)
@@ -67,9 +69,22 @@ const TEMPLATE = `
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.7-5.6M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6M4 20v-4.5h4.5" /></svg>
     Rellenar perchero
   </button>
-  <aside class="detail" role="dialog" hidden></aside>`;
+`;
 
-let uid = 0;
+// Ficha fija (resumen) de la prenda seleccionada
+const ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>';
+const INFO = `
+  <div class="rack__info">
+    <div class="rack__info-text">
+      <p class="rack__info-brand"></p>
+      <p class="rack__info-name"></p>
+    </div>
+    <p class="rack__info-price"></p>
+    <div class="rack__info-actions">
+      <button class="btn btn--dark card__add" type="button">Añadir a la cesta</button>
+      <button class="btn card__cta" type="button">Ver producto ${ARROW}</button>
+    </div>
+  </div>`;
 
 export class RackHero {
   private items: Item[];
@@ -81,8 +96,7 @@ export class RackHero {
   private prev = performance.now();
   private accumulator = 0;
   private lastHitAt = 0;
-  private returnFocus: HTMLElement | null = null;
-  private detailIndex = 0;
+  private lastInfo = -1;
   private readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   private readonly sideRad = THREE.MathUtils.degToRad(SIDE_ANGLE);
   private readonly push: number;
@@ -93,7 +107,7 @@ export class RackHero {
   private readonly stage: ReturnType<typeof createStage>;
   private readonly el: {
     canvas: HTMLCanvasElement; list: HTMLElement; captionName: HTMLElement; captionBrand: HTMLElement; counter: HTMLElement;
-    prev: HTMLButtonElement; next: HTMLButtonElement; detail: HTMLElement; close: HTMLButtonElement;
+    prev: HTMLButtonElement; next: HTMLButtonElement; info: HTMLElement | null;
   };
 
   constructor(private readonly container: HTMLElement, garments: GarmentData[], private readonly opts: RackOptions = {}) {
@@ -104,18 +118,17 @@ export class RackHero {
     container.classList.add('rack');
     container.insertAdjacentHTML('beforeend', TEMPLATE);
     const q = <T extends Element>(s: string) => container.querySelector<T>(s)!;
-    const nameId = `rack-detail-${++uid}`;
-    const detail = q<HTMLElement>('.detail');
-    detail.innerHTML = cardHTML(nameId);
-    detail.setAttribute('aria-labelledby', nameId);
-    bindCardCta(detail, () => {
-      this.closeDetail(); // la prenda se va: su ficha se cierra
-      this.opts.onAddToCart?.(this.detailIndex);
-    });
+    let info: HTMLElement | null = null;
+    if (!opts.onOpen) {
+      container.insertAdjacentHTML('beforeend', INFO);
+      container.classList.add('has-info');
+      info = q<HTMLElement>('.rack__info');
+      bindCardCta(info, () => this.opts.onAddToCart?.(this.selected));
+    }
     this.el = {
       canvas: q('.rack__stage'), list: q('.rack__list'), counter: q('.rack__counter'),
       captionName: q('.rack__caption-name'), captionBrand: q('.rack__caption-brand'),
-      prev: q('[data-dir="-1"]'), next: q('[data-dir="1"]'), detail, close: q('.card__close'),
+      prev: q('[data-dir="-1"]'), next: q('[data-dir="1"]'), info,
     };
 
     const railHalf = ((garments.length - 1) / 2) * spacing + this.push + RAIL_MARGIN;
@@ -179,16 +192,14 @@ export class RackHero {
     this.hovered = i === null ? null : this.items[i] ?? null;
   }
 
-  openDetail(i: number, from: HTMLElement | null = null) {
-    const d = this.items[i]?.data;
-    if (!d) return;
+  /** Enter sobre una prenda: el detalle de la página o, con ficha fija, su botón de añadir. */
+  openDetail(i: number) {
+    if (!this.items[i]) return;
     if (this.opts.onOpen) return this.opts.onOpen(i);
-    this.detailIndex = i;
-    fillCard(this.el.detail, d, i, this.items.length);
-    this.el.detail.hidden = false;
-    this.returnFocus = from ?? (document.activeElement as HTMLElement | null);
-    this.el.close.focus();
+    this.select(i);
+    this.el.info?.querySelector<HTMLElement>('.card__add')!.focus();
   }
+
 
   /**
    * La prenda sale del perchero (queda la percha vacía), se pliega, se empaqueta y vuela hasta `to`.
@@ -277,11 +288,6 @@ export class RackHero {
     if (this.focused === it) this.focused = null;
   }
 
-  private closeDetail() {
-    if (this.el.detail.hidden) return;
-    this.el.detail.hidden = true;
-    this.returnFocus?.focus();
-  }
 
   private mountItem(data: GarmentData, i: number, baseX: number): Item {
     const slot = new THREE.Group();
@@ -311,7 +317,7 @@ export class RackHero {
       this.select(i);
     });
     btn.addEventListener('blur', () => this.focused === item && (this.focused = null));
-    btn.addEventListener('click', () => this.openDetail(i, btn));
+    btn.addEventListener('click', () => this.openDetail(i));
     this.el.list.append(btn);
     return item;
   }
@@ -325,14 +331,12 @@ export class RackHero {
   }
 
   private bindEvents() {
-    const { canvas, prev, next, close } = this.el;
+    const { canvas, prev, next } = this.el;
     prev.addEventListener('click', () => this.select(this.selected - 1, -1));
     next.addEventListener('click', () => this.select(this.selected + 1, 1));
-    close.addEventListener('click', () => this.closeDetail());
 
     addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') return this.closeDetail();
-      if (!this.el.detail.hidden || e.altKey || e.metaKey || e.ctrlKey) return;
+      if (e.altKey || e.metaKey || e.ctrlKey) return;
       if (e.key === 'ArrowLeft') this.select(this.selected - 1, -1);
       else if (e.key === 'ArrowRight') this.select(this.selected + 1, 1);
       else return;
@@ -346,6 +350,9 @@ export class RackHero {
       if (item) {
         this.hovered = item;
         this.lastHitAt = now;
+        // Con ficha fija, pasar por encima selecciona: al salir hacia la ficha se queda esa prenda
+        const i = this.items.indexOf(item);
+        if (this.el.info && i !== this.selected) this.select(i);
       } else if (now - this.lastHitAt > HOVER_GRACE) {
         this.hovered = null;
       }
@@ -357,7 +364,7 @@ export class RackHero {
       if (!item) return;
       const i = this.items.indexOf(item);
       this.select(i);
-      this.openDetail(i);
+      if (this.opts.onOpen) this.opts.onOpen(i);
     });
   }
 
@@ -405,12 +412,30 @@ export class RackHero {
       this.el.captionName.textContent = name;
       this.el.captionBrand.textContent = active?.data.brand ?? '';
     }
+    this.fillInfo();
     const index = active ? this.items.indexOf(active) : -1;
     if (index !== this.lastActive) {
       this.lastActive = index;
       this.opts.onChange?.(index);
     }
     this.stage.renderer.render(this.stage.scene, this.stage.camera);
+  }
+
+  /** Ficha fija: datos de la seleccionada (se refresca solo al cambiar, con un fundido corto). */
+  private fillInfo() {
+    const info = this.el.info;
+    const it = this.items[this.selected];
+    if (!info || !it || it.gone || this.lastInfo === this.selected) return;
+    this.lastInfo = this.selected;
+    const set = (sel: string, text: string) => (info.querySelector<HTMLElement>(sel)!.textContent = text);
+    set('.rack__info-brand', it.data.brand);
+    set('.rack__info-name', it.data.name);
+    set('.rack__info-price', formatPrice(it.data.price));
+    info.querySelector<HTMLElement>('.card__cta')!.dataset.product = it.data.name;
+    info.querySelector<HTMLElement>('.card__add')!.setAttribute('aria-label', `Añadir a la cesta: ${it.data.name}`);
+    info.classList.remove('is-swap');
+    void info.offsetWidth; // reinicia el fundido
+    info.classList.add('is-swap');
   }
 
   private frame = (now: number) => {

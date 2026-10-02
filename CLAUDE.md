@@ -31,8 +31,11 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 
 ## Estructura
 - `src/rack/RackHero.ts`: clase `RackHero(container, prendas, opciones)` reutilizable y sin globales.
-  Crea su DOM (lienzo, flechas, contador, detalle). Opciones: `mount` (`'wall'` | `'floor'` = burro), `transparent`,
-  `spacing`, `push`, `initial`, `onChange`. Métodos públicos: `select(i)`, `preview(i|null)`, `openDetail(i)`.
+  Crea su DOM (lienzo, flechas, contador y, sin `onOpen`, la ficha fija). Opciones: `mount` (`'wall'` | `'floor'` = burro), `transparent`,
+  `spacing`, `push`, `initial`, `onChange`, `onOpen`, `onAddToCart`. Métodos públicos: `select(i)`, `preview(i|null)`, `openDetail(i)`.
+  Portada (sin `onOpen`): bajo el perchero, siempre visible, la ficha resumida de la prenda seleccionada
+  (`.rack__info`: marca, nombre, precio, «Añadir a la cesta» y «Ver producto»), sin modal. Ahí pasar por encima
+  de una prenda la selecciona (al bajar a la ficha se queda la última). Shop the look (`onOpen`) usa su propio detalle.
 - `src/stage.ts`: renderer, cámara, luces, pared, raíl de pared o burro (postes, base, ruedas, suelo) y percha.
 - `src/garment/pillow.ts`: malla "acolchada" a partir de una silueta 2D (dos caras cosidas en el canto).
 - `src/garment/builders.ts`: patrones y montaje de cada tipo de prenda (mangas, cuellos, botones…).
@@ -77,7 +80,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - La prenda activa (hover por raycast o foco con Tab) gira de frente y las vecinas se apartan
   (`PUSH`, `PUSH_FALLOFF`), con muelles críticamente amortiguados (`TURN_STIFF`, `TURN_DAMP`).
 - Slider: flechas ‹ › (y teclas ← →) cambian la prenda seleccionada, que gira de frente en su sitio
-  (las perchas no se desplazan para centrarla). Hover y foco previsualizan otra prenda.
+  (las perchas no se desplazan para centrarla). En Shop the look hover y foco previsualizan otra prenda;
+  en la portada la seleccionan.
 - La cámara encaja siempre el perchero entero (raíl y soportes, `RAIL_HALF`).
 - Paso fijo de 1/120 s con acumulador. Parámetros al inicio de `src/rack/RackHero.ts`.
 - El péndulo con viento y retraso de tela existió en commits anteriores (ver historial de git).
