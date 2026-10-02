@@ -301,40 +301,48 @@ button { font: inherit; color: inherit; }
   .rack__refill, .hero .rack__refill { bottom: calc(var(--gutter) + 52px); }
 }
 
-/* Ficha fija de la prenda seleccionada (portada): resumen siempre a la vista bajo el perchero */
+/* Ficha fija de la prenda seleccionada (portada): integrada bajo el perchero, sin caja,
+   en el sitio del nombre de la prenda */
 .rack.has-info .rack__caption { display: none; }
 .rack__info {
   position: absolute;
-  left: 50%;
+  left: var(--gutter);
+  right: var(--gutter);
   bottom: calc(var(--gutter) + 26px);
   z-index: 2;
-  width: min(660px, calc(100% - 2 * var(--gutter)));
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 10px 10px 10px 22px;
-  background: var(--paper);
-  border-radius: 2px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 14px 40px -14px rgba(0, 0, 0, 0.3);
-  transform: translateX(-50%);
+  justify-content: center;
+  gap: 22px;
   transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+  pointer-events: none; /* solo los botones: el resto deja pasar el puntero al perchero */
 }
-.rack.is-empty .rack__info { opacity: 0; visibility: hidden; transform: translate(-50%, 8px); }
-.rack__info-text { min-width: 0; }
-.rack__info-brand { font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.rack.is-empty .rack__info { opacity: 0; visibility: hidden; transform: translateY(8px); }
+.rack__info-text { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
 .rack__info-name {
-  margin-top: 2px;
+  order: -1;
   font-family: var(--serif);
-  font-size: 24px;
-  line-height: 1.05;
+  font-size: 22px;
+  line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.rack__info-brand { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
 .rack__info-price { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rack__info-actions { display: flex; gap: 8px; }
-.rack__info .btn { height: 44px; padding: 0 16px; letter-spacing: 0.1em; white-space: nowrap; }
+.rack__info-actions { display: flex; align-items: center; gap: 18px; pointer-events: auto; }
+.rack__info .card__add { height: 38px; padding: 0 16px; letter-spacing: 0.1em; white-space: nowrap; }
+/* «Ver producto»: enlace de texto, no botón */
+.rack__info .card__cta {
+  height: auto;
+  padding: 2px 0;
+  border: 0;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  transition: background-size 0.3s var(--ease);
+}
+.rack__info .card__cta:hover { background-color: transparent; color: var(--ink); background-size: 0 1px; background-position: 100% 100%; }
 /* Al cambiar de prenda, el texto entra con un fundido corto */
 .rack__info.is-swap .rack__info-text,
 .rack__info.is-swap .rack__info-price { animation: info-swap 0.3s var(--ease); }
@@ -342,15 +350,13 @@ button { font: inherit; color: inherit; }
 /* Foco con Tab en una prenda: se subraya su nombre */
 .rack__list:focus-within ~ .rack__info .rack__info-name { text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 1px; }
 @media (max-width: 900px) {
-  /* Sin sitio junto a las flechas: la ficha sube y ocupa el ancho */
-  .rack__info { left: var(--gutter); right: var(--gutter); width: auto; bottom: calc(var(--gutter) + 50px); transform: none; }
-  .rack.is-empty .rack__info { transform: translateY(8px); }
+  /* Sin sitio junto a las flechas: la ficha sube y se parte en dos líneas */
+  .rack__info { bottom: calc(var(--gutter) + 54px); flex-wrap: wrap; gap: 12px 16px; }
+  .rack__info-actions { flex-basis: 100%; justify-content: center; }
 }
 @media (max-width: 640px) {
-  .rack__info { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 14px; padding: 12px 12px 12px 16px; }
   .rack__info-name { font-size: 21px; }
-  .rack__info-actions { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; }
-  .rack__info .btn { height: 40px; padding: 0 12px; }
+  .rack__info .card__add { height: 40px; }
 }
 
 /* ---------- Ficha de producto (misma altura siempre) ---------- */
