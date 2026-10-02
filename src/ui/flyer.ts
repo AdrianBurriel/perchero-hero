@@ -137,6 +137,18 @@ export function packAndFly(body: THREE.Group, from: Launch, to: { x: number; y: 
     m.material = foldable(m.material as THREE.Material, m.userData.part === 'body' ? uBody : uSleeve);
   }
 
+  // Piezas colocadas con su propia posición (botones, tirador): el shader pliega según las
+  // coordenadas de la malla, así que se hornea la posición en una copia de la geometría
+  const baked: { m: THREE.Mesh; geo: THREE.BufferGeometry; pos: THREE.Vector3; quat: THREE.Quaternion }[] = [];
+  for (const m of meshes) {
+    if (m.position.lengthSq() === 0 && m.quaternion.equals(new THREE.Quaternion())) continue;
+    m.updateMatrix();
+    baked.push({ m, geo: m.geometry, pos: m.position.clone(), quat: m.quaternion.clone() });
+    m.geometry = m.geometry.clone().applyMatrix4(m.matrix);
+    m.position.set(0, 0, 0);
+    m.quaternion.identity();
+  }
+
   // Cada manga gira alrededor de su costura del hombro (borde interior)
   const hinges: { group: THREE.Group; sign: number; members: THREE.Mesh[]; px: number }[] = [];
   for (const [part, sign] of [['sleeveR', 1], ['sleeveL', -1]] as const) {
@@ -217,6 +229,12 @@ export function packAndFly(body: THREE.Group, from: Launch, to: { x: number; y: 
           body.add(m);
         }
         body.remove(hg.group);
+      }
+      for (const b of baked) {
+        b.m.geometry.dispose();
+        b.m.geometry = b.geo;
+        b.m.position.copy(b.pos);
+        b.m.quaternion.copy(b.quat);
       }
       for (const [m, mat] of originals) {
         (m.material as THREE.Material).dispose();
