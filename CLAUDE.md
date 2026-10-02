@@ -84,6 +84,12 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 7. Rendimiento: comprobar 60 fps; pausar el bucle fuera de viewport (IntersectionObserver).
 8. Portar a Shopify: `RackHero` ya está encapsulada; falta montarla en una sección del tema.
 
+## Despliegue
+- Vercel conectado al repo de GitHub (privado): cada push a `main` se publica en https://perchero-hero.vercel.app.
+- Plan Hobby: Vercel solo despliega commits cuyo autor sea el dueño (AdrianBurriel). Por eso este repo
+  firma con el correo noreply de GitHub de AdrianBurriel (`git config user.email` local, no global).
+  Si un push sale «Deployment was blocked», revisa el autor del commit.
+
 ## Criterios de aceptación
 - 60 fps con 11 prendas en un portátil medio y en móvil de gama media.
 - `prefers-reduced-motion` desactiva viento e impulso.
