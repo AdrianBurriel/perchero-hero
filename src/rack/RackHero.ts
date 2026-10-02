@@ -29,7 +29,7 @@ export interface RackOptions {
   onOpen?: (index: number) => void;   // si se da, el detalle lo muestra la página y no el perchero
   onAddToCart?: (index: number) => void; // botón "Añadir a la cesta" de la ficha del perchero
   gone?: (index: number) => boolean;      // prendas que empiezan fuera del perchero (ya en la cesta)
-  onStock?: (hanging: number) => void;    // nº de prendas colgadas (al empezar y cada vez que cambia)
+  onStock?: (hanging: number, total: number) => void; // colgadas / perchas (al empezar y cada vez que cambia)
 }
 
 interface Item {
@@ -223,7 +223,7 @@ export class RackHero {
   }
 
   private notifyStock() {
-    this.opts.onStock?.(this.items.filter((it) => !it.gone).length);
+    this.opts.onStock?.(this.items.filter((it) => !it.gone).length, this.items.length);
   }
 
   private takeOff(it: Item, notify = true) {

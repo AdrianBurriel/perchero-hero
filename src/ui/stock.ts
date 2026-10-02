@@ -1,18 +1,22 @@
-/* Contador de prendas colgadas en la barra superior. Al cambiar, el número rueda
+/* Contador "9 / 11 prendas en percha" (colgadas / perchas) en la barra superior.
+   Al cambiar, el número de colgadas rueda
    (sube al quitar, baja al devolver) y un "−1" / "+1" flota y se desvanece. */
 
 const DURATION = 1200; // ms que dura el aviso "−1"
 
 export function mountStock(el: HTMLElement, prefix = '') {
-  el.innerHTML = `${prefix}<span class="stock"><span class="stock__roll"><span class="stock__num"></span></span><span class="stock__delta" aria-hidden="true"></span></span> <span class="stock__noun"></span>`;
+  el.innerHTML = `${prefix}<span class="stock"><span class="stock__roll"><span class="stock__num"></span></span><span class="stock__delta" aria-hidden="true"></span></span><span class="stock__total"></span> <span class="stock__noun"></span>`;
+  const total = el.querySelector<HTMLElement>('.stock__total')!;
   const roll = el.querySelector<HTMLElement>('.stock__roll')!;
   const noun = el.querySelector<HTMLElement>('.stock__noun')!;
   const delta = el.querySelector<HTMLElement>('.stock__delta')!;
   let value: number | null = null;
   let timer = 0;
 
-  return (n: number) => {
-    noun.textContent = `${n === 1 ? 'prenda' : 'prendas'} en percha`;
+  return (n: number, of: number) => {
+    // El total son las perchas: deja ver cuántas se han quedado vacías
+    total.textContent = ` / ${of}`;
+    noun.textContent = `${of === 1 ? 'prenda' : 'prendas'} en percha`;
     if (value === null || value === n) {
       roll.querySelector('.stock__num')!.textContent = String(n);
       value = n;

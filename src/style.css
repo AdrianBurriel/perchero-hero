@@ -122,6 +122,7 @@ button { font: inherit; color: inherit; }
   70% { opacity: 1; }
   100% { opacity: 0; transform: translate(-50%, 6px); }
 }
+.stock__total { white-space: pre; font-variant-numeric: tabular-nums; }
 .stock__noun { transition: color 0.3s var(--ease); }
 /* Al cambiar, el texto se aviva un instante y vuelve al gris de la barra */
 .topbar__crumb.is-changed { animation: crumb-flash 1.2s var(--ease); }
