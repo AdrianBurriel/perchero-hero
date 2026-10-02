@@ -32,7 +32,7 @@ export const cardHTML = (nameId: string) => `
   </div>`;
 
 /** Rellena una ficha ya montada con los datos de la prenda. */
-export function fillCard(root: HTMLElement, g: GarmentData, index: number, total: number) {
+export function fillCard(root: HTMLElement, g: GarmentData, index: number, total: number, inBag = false) {
   const set = (sel: string, text: string) => (root.querySelector<HTMLElement>(sel)!.textContent = text);
   set('.card__brand', g.brand);
   set('.card__index', `${pad(index + 1)} / ${pad(total)}`);
@@ -41,6 +41,9 @@ export function fillCard(root: HTMLElement, g: GarmentData, index: number, total
   set('.card__price', formatPrice(g.price));
   set('.card__text', g.description);
   root.querySelector<HTMLElement>('.card__cta')!.dataset.product = g.name;
+  const add = root.querySelector<HTMLButtonElement>('.card__add')!;
+  add.disabled = inBag;
+  add.textContent = inBag ? 'En la cesta' : 'Añadir a la cesta';
 }
 
 /** Aviso breve para acciones simuladas (ficha, compra). */

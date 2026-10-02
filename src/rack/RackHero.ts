@@ -3,7 +3,7 @@ import type { GarmentData } from '../garments';
 import { createStage, createHanger, type Mount } from '../stage';
 import { buildGarment } from '../garment/builders';
 import { cardHTML, fillCard, bindCardCta } from '../ui/productCard';
-import { fly } from '../ui/flyer';
+import { packAndFly } from '../ui/flyer';
 
 /* Perchero interactivo reutilizable: crea su propio DOM (lienzo, flechas, detalle)
    dentro del contenedor, sin dependencias globales. Lo usan la portada y Shop the look. */
@@ -17,6 +17,7 @@ const TURN_DAMP = 11.5;  // ≥ 2·√TURN_STIFF: llega sin rebote; menor deja u
 const PUSH_FALLOFF = 0.3; // las lejanas se apartan menos: el perchero se comprime
 const HOVER_GRACE = 180; // ms sin tocar prenda antes de soltar la activa (evita parpadeo en huecos)
 const RAIL_MARGIN = 0.24; // raíl sobrante a cada lado de la última prenda apartada (m)
+const RESTOCK = 0.7;      // s que tarda una prenda devuelta en volver a colgarse (se desenrolla desde el gancho)
 
 export interface RackOptions {
   mount?: Mount;     // 'wall' = raíl de pared, 'floor' = burro con ruedas
@@ -27,14 +28,18 @@ export interface RackOptions {
   onChange?: (index: number) => void; // prenda activa (seleccionada o en hover)
   onOpen?: (index: number) => void;   // si se da, el detalle lo muestra la página y no el perchero
   onAddToCart?: (index: number) => void; // botón "Añadir a la cesta" de la ficha del perchero
+  gone?: (index: number) => boolean;      // prendas que empiezan fuera del perchero (ya en la cesta)
 }
 
 interface Item {
   data: GarmentData;
   slot: THREE.Group;   // posición en el raíl (se aparta)
   turner: THREE.Group; // giro de lado a frente
-  body: THREE.Group;   // la prenda (sin percha): se copia para el vuelo a la cesta
+  body: THREE.Group;   // la prenda (sin percha): es la que se pliega y viaja a la cesta
+  btn: HTMLButtonElement;
   baseX: number;
+  gone: boolean;   // fuera del perchero (en la cesta): queda la percha vacía
+  restock: number; // 0..1 mientras vuelve a colgarse
   turn: number; // 0 = de lado, 1 = de frente
   turnV: number;
   shift: number; // desplazamiento por el raíl (m)
@@ -97,7 +102,10 @@ export class RackHero {
     const detail = q<HTMLElement>('.detail');
     detail.innerHTML = cardHTML(nameId);
     detail.setAttribute('aria-labelledby', nameId);
-    bindCardCta(detail, () => this.opts.onAddToCart?.(this.detailIndex));
+    bindCardCta(detail, () => {
+      this.closeDetail(); // la prenda se va: su ficha se cierra
+      this.opts.onAddToCart?.(this.detailIndex);
+    });
     this.el = {
       canvas: q('.rack__stage'), list: q('.rack__list'), counter: q('.rack__counter'),
       captionName: q('.rack__caption-name'), captionBrand: q('.rack__caption-brand'),
@@ -108,6 +116,7 @@ export class RackHero {
     this.stage = createStage(this.el.canvas, { mount: opts.mount ?? 'wall', railHalf, transparent: opts.transparent });
 
     this.items = garments.map((data, i) => this.mountItem(data, i, (i - (garments.length - 1) / 2) * spacing));
+    this.items.forEach((it, i) => opts.gone?.(i) && this.takeOff(it));
     this.bindEvents();
     this.select(this.selected);
     this.step(0, true); // arranca ya en su sitio: la seleccionada de frente, sin animación inicial
@@ -133,11 +142,28 @@ export class RackHero {
   }
 
   /** Selecciona una prenda (la pone de frente). Público para enlazarlo con otros controles. */
-  select(i: number) {
-    this.selected = Math.max(0, Math.min(this.items.length - 1, i));
-    this.el.prev.disabled = this.selected === 0;
-    this.el.next.disabled = this.selected === this.items.length - 1;
+  select(i: number, dir = 0) {
+    this.selected = this.nearest(Math.max(0, Math.min(this.items.length - 1, i)), dir);
+    this.el.prev.disabled = this.nearestIn(this.selected - 1, -1) < 0;
+    this.el.next.disabled = this.nearestIn(this.selected + 1, 1) < 0;
     this.el.counter.textContent = `${pad(this.selected + 1)} / ${pad(this.items.length)}`;
+  }
+
+  /** Primera prenda colgada desde `i` avanzando en `dir` (-1 si no hay). */
+  private nearestIn(i: number, dir: number) {
+    for (let j = i; j >= 0 && j < this.items.length; j += dir) if (!this.items[j]!.gone) return j;
+    return -1;
+  }
+
+  /** Prenda colgada más cercana a `i`, preferentemente en `dir` (si no queda ninguna, `i`). */
+  private nearest(i: number, dir: number) {
+    if (!this.items[i]?.gone) return i;
+    const order = dir < 0 ? [-1, 1] : [1, -1];
+    for (const d of order) {
+      const j = this.nearestIn(i + d, d);
+      if (j >= 0) return j;
+    }
+    return i;
   }
 
   /** Previsualiza una prenda sin cambiar la selección (null = soltar). */
@@ -156,22 +182,49 @@ export class RackHero {
     this.el.close.focus();
   }
 
-  /** Lanza una copia 3D de la prenda desde el perchero hasta `to` (px de pantalla). */
-  flyTo(i: number, to: { x: number; y: number }): Promise<void> {
+  /**
+   * La prenda sale del perchero (queda la percha vacía), se pliega, se empaqueta y vuela hasta `to`.
+   * Devuelve false si ya no estaba colgada.
+   */
+  sendToCart(i: number, to: { x: number; y: number }): Promise<boolean> {
     const it = this.items[i];
-    if (!it || this.reduceMotion) return Promise.resolve();
+    if (!it || it.gone) return Promise.resolve(false);
     const { camera } = this.stage;
-    const center = new THREE.Box3().setFromObject(it.body).getCenter(new THREE.Vector3());
-    const ndc = center.clone().project(camera);
+    // Origen de la prenda (punto del raíl) en pantalla y px por metro a esa profundidad
+    const origin = it.body.getWorldPosition(new THREE.Vector3());
+    const ndc = origin.clone().project(camera);
     const r = this.el.canvas.getBoundingClientRect();
-    // px por metro a la profundidad de la prenda: la copia despega con el mismo tamaño en pantalla
-    const viewH = 2 * camera.position.distanceTo(center) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    return fly(it.body.clone(true), {
+    const viewH = 2 * camera.position.distanceTo(origin) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const launch = {
       x: r.left + ((ndc.x + 1) / 2) * r.width,
       y: r.top + ((1 - ndc.y) / 2) * r.height,
       scale: r.height / viewH,
       rotY: it.turner.rotation.y,
-    }, to);
+    };
+    this.takeOff(it);
+    if (this.items[this.selected] === it) this.select(this.selected, 1);
+    this.render(); // la prenda desaparece del perchero en el mismo fotograma en que aparece en la capa
+    if (this.reduceMotion) return Promise.resolve(true);
+    return packAndFly(it.body, launch, to).then(() => true);
+  }
+
+  /** Vuelve a colgar una prenda que estaba fuera (p. ej. al quitarla de la cesta). */
+  restore(i: number) {
+    const it = this.items[i];
+    if (!it?.gone) return;
+    it.gone = false;
+    it.btn.disabled = false;
+    it.restock = this.reduceMotion ? 1 : 0;
+    it.turner.add(it.body);
+    this.select(this.selected);
+  }
+
+  private takeOff(it: Item) {
+    it.gone = true;
+    it.btn.disabled = true;
+    it.turner.remove(it.body);
+    if (this.hovered === it) this.hovered = null;
+    if (this.focused === it) this.focused = null;
   }
 
   private closeDetail() {
@@ -190,14 +243,17 @@ export class RackHero {
     slot.position.x = baseX;
     this.stage.scene.add(slot);
 
-    const item: Item = { data, slot, turner, body: garment.body, baseX, turn: 0, turnV: 0, shift: 0, shiftV: 0 };
+    const btn = document.createElement('button');
+    const item: Item = {
+      data, slot, turner, body: garment.body, btn, baseX, gone: false, restock: 1,
+      turn: 0, turnV: 0, shift: 0, shiftV: 0,
+    };
     for (const m of garment.hit) {
       this.byMesh.set(m, item);
       this.hitMeshes.push(m);
     }
 
     // Botón accesible (invisible) por prenda: Tab la selecciona, Enter abre el detalle
-    const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = `${data.name}, ${data.brand}`;
     btn.addEventListener('focus', () => {
@@ -214,21 +270,21 @@ export class RackHero {
     const r = this.el.canvas.getBoundingClientRect();
     this.ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     this.raycaster.setFromCamera(this.ndc, this.stage.camera);
-    const hit = this.raycaster.intersectObjects(this.hitMeshes, false)[0];
+    const hit = this.raycaster.intersectObjects(this.hitMeshes, false).find((h) => !this.byMesh.get(h.object)?.gone);
     return hit ? this.byMesh.get(hit.object) ?? null : null;
   }
 
   private bindEvents() {
     const { canvas, prev, next, close } = this.el;
-    prev.addEventListener('click', () => this.select(this.selected - 1));
-    next.addEventListener('click', () => this.select(this.selected + 1));
+    prev.addEventListener('click', () => this.select(this.selected - 1, -1));
+    next.addEventListener('click', () => this.select(this.selected + 1, 1));
     close.addEventListener('click', () => this.closeDetail());
 
     addEventListener('keydown', (e) => {
       if (e.key === 'Escape') return this.closeDetail();
       if (!this.el.detail.hidden || e.altKey || e.metaKey || e.ctrlKey) return;
-      if (e.key === 'ArrowLeft') this.select(this.selected - 1);
-      else if (e.key === 'ArrowRight') this.select(this.selected + 1);
+      if (e.key === 'ArrowLeft') this.select(this.selected - 1, -1);
+      else if (e.key === 'ArrowRight') this.select(this.selected + 1, 1);
       else return;
       this.hovered = null; // la flecha manda sobre un hover que se haya quedado
       e.preventDefault();
@@ -255,19 +311,23 @@ export class RackHero {
     });
   }
 
-  private get active(): Item {
-    return this.hovered ?? this.focused ?? this.items[this.selected]!;
+  /** Prenda que está de frente; ninguna si la seleccionada ya no está colgada. */
+  private get active(): Item | null {
+    const it = this.hovered ?? this.focused ?? this.items[this.selected]!;
+    return it.gone ? null : it;
   }
 
   /* ---------- Muelles de giro y apartado ---------- */
   private step(dt: number, snap = false) {
-    const activeIndex = this.items.indexOf(this.active);
+    const active = this.active;
+    const activeIndex = active ? this.items.indexOf(active) : -1;
     this.items.forEach((it, i) => {
+      if (it.restock < 1) it.restock = Math.min(1, it.restock + dt / RESTOCK);
       // Muelle del giro hacia su objetivo (de frente si está activa)
       const target = i === activeIndex ? 1 : 0;
       // Las vecinas se apartan a cada lado de la activa, menos cuanto más lejos
       const d = i - activeIndex;
-      const shiftTarget = d === 0 ? 0 : (Math.sign(d) * this.push) / (1 + PUSH_FALLOFF * (Math.abs(d) - 1));
+      const shiftTarget = activeIndex < 0 || d === 0 ? 0 : (Math.sign(d) * this.push) / (1 + PUSH_FALLOFF * (Math.abs(d) - 1));
       if (this.reduceMotion || snap) {
         it.turn = target;
         it.turnV = 0;
@@ -286,13 +346,16 @@ export class RackHero {
     for (const it of this.items) {
       it.slot.position.x = it.baseX + it.shift;
       it.turner.rotation.y = (1 - it.turn) * this.sideRad;
+      // Al volver a colgarse, la prenda se desenrolla hacia abajo desde el gancho
+      it.body.scale.y = 1 - (1 - it.restock) ** 3;
     }
     const active = this.active;
-    if (this.el.captionName.textContent !== active.data.name) {
-      this.el.captionName.textContent = active.data.name;
-      this.el.captionBrand.textContent = active.data.brand;
+    const name = active?.data.name ?? '';
+    if (this.el.captionName.textContent !== name) {
+      this.el.captionName.textContent = name;
+      this.el.captionBrand.textContent = active?.data.brand ?? '';
     }
-    const index = this.items.indexOf(active);
+    const index = active ? this.items.indexOf(active) : -1;
     if (index !== this.lastActive) {
       this.lastActive = index;
       this.opts.onChange?.(index);

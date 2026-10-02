@@ -4,7 +4,7 @@ import { byId } from './garments';
 import { looks } from './looks';
 import { RackHero } from './rack/RackHero';
 import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
-import { mountCart, cartTarget, addToCart } from './ui/cart';
+import { mountCart, cartTarget, addToCart, inCart, onCartRemove } from './ui/cart';
 
 /* Shop the look: foto del modelo con puntos sobre cada prenda + perchero con esas prendas.
    Puntos, perchero y detalle comparten la prenda activa. */
@@ -20,8 +20,14 @@ $('#look-subtitle').textContent = look.subtitle;
 $('#look-count').textContent = `${garments.length} prendas`;
 $('#look-total').textContent = formatPrice(garments.reduce((s, g) => s + g.price, 0));
 // Comprar el look: las prendas vuelan una tras otra a la cesta
-$('#buy-look').addEventListener('click', () => {
-  garments.forEach((g, i) => setTimeout(() => rack.flyTo(i, cartTarget()).then(() => addToCart(g)), i * 160));
+const buy = $<HTMLButtonElement>('#buy-look');
+const updateBuy = () => {
+  const all = garments.every((g) => inCart(g.id));
+  buy.disabled = all;
+  buy.textContent = all ? 'Look en la cesta' : 'Comprar el look';
+};
+buy.addEventListener('click', () => {
+  garments.forEach((g, i) => setTimeout(() => send(i), i * 240));
 });
 
 /* ---------- Foto ---------- */
@@ -40,7 +46,14 @@ Object.assign($('.look__layer').style, { width: `${zoom * 100}%`, height: `${zoo
 /* ---------- Detalle sobre la foto ---------- */
 const detail = $('#look-detail');
 detail.innerHTML = cardHTML('look-detail-name');
-bindCardCta(detail, () => rack.flyTo(current, cartTarget()).then(() => addToCart(garments[current]!)));
+// La prenda se pliega, se empaqueta y vuela a la cesta; se suma al aterrizar
+const send = (i: number) =>
+  rack.sendToCart(i, cartTarget()).then((ok) => {
+    if (ok) addToCart(garments[i]!);
+    showDetail(current); // refresca el botón ("En la cesta")
+    updateBuy();
+  });
+bindCardCta(detail, () => send(current));
 let detailOpen = true;
 let current = 0;
 
@@ -48,7 +61,7 @@ const showDetail = (i: number) => {
   const g = garments[i];
   if (!g) return;
   current = i;
-  fillCard(detail, g, i, garments.length);
+  fillCard(detail, g, i, garments.length, inCart(g.id));
 };
 const setOpen = (open: boolean) => {
   detailOpen = open;
@@ -93,6 +106,7 @@ const rack = new RackHero($('#look-rack'), garments, {
   initial: 0,
   onChange: (i) => {
     buttons.forEach((b, j) => b.classList.toggle('is-active', i === j));
+    if (i < 0) return; // no queda ninguna colgada: se mantiene la última ficha
     current = i;
     // El detalle abierto sigue a la prenda activa del perchero
     if (detailOpen) showDetail(i);
@@ -101,4 +115,14 @@ const rack = new RackHero($('#look-rack'), garments, {
     current = i;
     setOpen(true);
   },
+  gone: (i) => inCart(garments[i]!.id),
 });
+// Quitar de la cesta la devuelve a su percha
+onCartRemove((id) => {
+  rack.restore(garments.findIndex((g) => g.id === id));
+  showDetail(current);
+  updateBuy();
+});
+// Estado inicial: aunque no quede ninguna colgada, la ficha muestra una prenda
+showDetail(current);
+updateBuy();

@@ -41,8 +41,12 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   y `toast()` para acciones simuladas (ver ficha, comprar el look).
 - `src/ui/cart.ts`: cesta simulada (icono con contador en la barra superior + panel lateral), en
   localStorage para compartirla entre páginas. `mountCart(slot)`, `cartTarget()`, `addToCart(prenda)`.
-- `src/ui/flyer.ts`: vuelo 3D a la cesta en una capa WebGL transparente a pantalla completa
-  (cámara ortográfica en px). `RackHero.flyTo(i, destino)` copia la prenda y la lanza en arco.
+- `src/ui/flyer.ts`: empaquetado y vuelo a la cesta en una capa WebGL transparente a pantalla completa
+  (cámara ortográfica en px). La prenda real sale del perchero, pliega las mangas (piezas marcadas con
+  `Kit.sleeve`) y la mitad inferior (deformación en el vertex shader), se envuelve en una caja de kraft
+  con faja y vuela en arco. `RackHero.sendToCart(i, destino)` la lanza y deja la percha vacía;
+  `RackHero.restore(i)` la vuelve a colgar (al quitarla de la cesta). Opción `gone` para empezar sin
+  las prendas que ya están en la cesta.
 - `src/style.css`: sistema visual común. Tipografías Instrument Serif (títulos) e Inter (texto) desde Google Fonts.
 - `src/garments.ts`: catálogo ficticio con `id` y `price` (€) (`garments` = portada, `lookGarments` = prendas de los looks;
   `byId(id)` busca en ambos).

@@ -58,6 +58,8 @@ button { font: inherit; color: inherit; }
 .btn:hover svg { transform: translateX(3px); }
 .btn--dark { background: var(--ink); color: var(--paper); }
 .btn--dark:hover { background: #34322e; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn--dark:disabled:hover { background: var(--ink); }
 
 /* ---------- Barra superior ---------- */
 .topbar {

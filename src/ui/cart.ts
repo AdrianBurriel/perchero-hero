@@ -39,6 +39,12 @@ let drawer: HTMLElement;
 let returnFocus: HTMLElement | null = null;
 
 const count = () => lines.reduce((s, l) => s + l.qty, 0);
+const removeListeners: ((id: string) => void)[] = [];
+
+/** ¿Está ya en la cesta? (al cargar, esas prendas no se cuelgan en el perchero) */
+export const inCart = (id: string) => lines.some((l) => l.id === id);
+/** Avisa cuando se quita una prenda de la cesta (para devolverla al perchero). */
+export const onCartRemove = (fn: (id: string) => void) => removeListeners.push(fn);
 
 function render() {
   const n = count();
@@ -79,6 +85,7 @@ function remove(id: string) {
   lines = lines.filter((l) => l.id !== id);
   save(lines);
   render();
+  removeListeners.forEach((fn) => fn(id));
 }
 
 function open() {

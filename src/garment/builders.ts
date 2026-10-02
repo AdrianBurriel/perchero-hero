@@ -78,12 +78,26 @@ function drape(seed: number, amp: number, top = -0.12, bottom = -0.8): Field {
 }
 
 /* ---------- Utilidades de montaje ---------- */
+export type Part = 'body' | 'sleeveL' | 'sleeveR';
+
 class Kit {
   body = new THREE.Group();
   hit: THREE.Mesh[] = [];
+  private part: Part = 'body';
+
+  /** Las piezas creadas dentro de `fn` se marcan como manga (se pliegan aparte al empaquetar). */
+  sleeve<T>(side: number, fn: () => T): T {
+    this.part = side === 1 ? 'sleeveR' : 'sleeveL';
+    try {
+      return fn();
+    } finally {
+      this.part = 'body';
+    }
+  }
 
   add(geo: THREE.BufferGeometry, mat: THREE.Material, hit = false) {
     const m = new THREE.Mesh(geo, mat);
+    m.userData.part = this.part;
     m.castShadow = true;
     m.receiveShadow = true;
     this.body.add(m);
@@ -151,12 +165,14 @@ function shirt(d: GarmentData, seed: number): BuiltGarment {
   const heavy = d.variant === 'overshirt';
   const surf = k.piece(mirror(SHIRT), { depth: heavy ? 0.02 : 0.014, folds: drape(seed, heavy ? 0.006 : 0.01) }, mat, true);
   for (const side of [1, -1]) {
-    const sleeve = k.piece(
-      flipX(SHIRT_SLEEVE, side),
-      { depth: heavy ? 0.016 : 0.012, base: () => -0.004, folds: drape(seed + side * 3, 0.007, -0.15, -0.67) },
-      mat, true,
-    );
-    k.overlay(flipX(SHIRT_CUFF, side), sleeve, 0.003, mat);
+    k.sleeve(side, () => {
+      const sleeve = k.piece(
+        flipX(SHIRT_SLEEVE, side),
+        { depth: heavy ? 0.016 : 0.012, base: () => -0.004, folds: drape(seed + side * 3, 0.007, -0.15, -0.67) },
+        mat, true,
+      );
+      k.overlay(flipX(SHIRT_CUFF, side), sleeve, 0.003, mat);
+    });
     k.overlay(flipX(SHIRT_COLLAR, side), surf, 0.003, mat, 0.0018);
     if (side === 1 || heavy || d.fabric.kind === 'flannel') k.overlay(flipX(CHEST_POCKET, side), surf, 0.002, mat);
   }
@@ -173,12 +189,14 @@ function knitTop(k: Kit, d: GarmentData, seed: number): Field {
   const folds = drape(seed, 0.006, -0.12, -0.7);
   const surf = k.piece(mirror(SWEATER), { depth, folds }, mat, true);
   for (const side of [1, -1]) {
-    const sleeve = k.piece(
-      flipX(SWEATER_SLEEVE, side),
-      { depth: depth * 0.75, base: () => -0.006, folds: drape(seed + side * 5, 0.004, -0.15, -0.7) },
-      mat, true,
-    );
-    k.overlay(flipX(SWEATER_CUFF, side), sleeve, 0.004, rib);
+    k.sleeve(side, () => {
+      const sleeve = k.piece(
+        flipX(SWEATER_SLEEVE, side),
+        { depth: depth * 0.75, base: () => -0.006, folds: drape(seed + side * 5, 0.004, -0.15, -0.7) },
+        mat, true,
+      );
+      k.overlay(flipX(SWEATER_CUFF, side), sleeve, 0.004, rib);
+    });
   }
   k.overlay([[-0.236, -0.635], [0.236, -0.635], [0.236, -0.695], [-0.236, -0.695]], surf, 0.004, rib);
   k.piece(mirror(KNIT_BACK_NECK), { depth: 0.002, base: () => -depth * 0.6, frontOnly: true }, fabricMaterial(d.fabric, { seed, inner: true }));
@@ -219,12 +237,14 @@ function jacket(d: GarmentData, seed: number): BuiltGarment {
   const folds = drape(seed, v === 'leather' ? 0.007 : 0.005, -0.12, -0.67);
   const surf = k.piece(mirror(JACKET), { depth, folds, puff, round: depth * 1.4 }, mat, true);
   for (const side of [1, -1]) {
-    const sleeve = k.piece(
-      flipX(JACKET_SLEEVE, side),
-      { depth: depth * 0.8, base: () => -0.006, folds: drape(seed + side * 7, 0.004, -0.15, -0.68), puff },
-      mat, true,
-    );
-    k.overlay(flipX(JACKET_CUFF, side), sleeve, 0.004, v === 'puffer' ? fabricMaterial({ kind: 'rib', colors: ['#2a2d24'] }) : mat);
+    k.sleeve(side, () => {
+      const sleeve = k.piece(
+        flipX(JACKET_SLEEVE, side),
+        { depth: depth * 0.8, base: () => -0.006, folds: drape(seed + side * 7, 0.004, -0.15, -0.68), puff },
+        mat, true,
+      );
+      k.overlay(flipX(JACKET_CUFF, side), sleeve, 0.004, v === 'puffer' ? fabricMaterial({ kind: 'rib', colors: ['#2a2d24'] }) : mat);
+    });
     if (v === 'denim') {
       k.overlay(flipX(DENIM_COLLAR, side), surf, 0.004, mat, 0.002);
       const flap = k.overlay(flipX(FLAP, side), surf, 0.004, mat);
@@ -269,10 +289,12 @@ function tailoredTop(k: Kit, d: GarmentData, seed: number, o: { hem: number; fla
   const folds = drape(seed, 0.004, -0.12, o.hem);
   const surf = k.piece(mirror(tailored(o.hem, o.flare)), { depth: o.depth, folds, round: o.depth * 1.5 }, mat, true);
   for (const side of [1, -1]) {
-    k.piece(
-      flipX(tailoredSleeve(o.cuff), side),
-      { depth: o.depth * 0.75, base: () => -0.006, folds: drape(seed + side * 7, 0.004, -0.15, o.cuff) },
-      mat, true,
+    k.sleeve(side, () =>
+      k.piece(
+        flipX(tailoredSleeve(o.cuff), side),
+        { depth: o.depth * 0.75, base: () => -0.006, folds: drape(seed + side * 7, 0.004, -0.15, o.cuff) },
+        mat, true,
+      ),
     );
     k.overlay(flipX(notchLapel(o.lapelK, o.lapelTo), side), surf, 0.004, mat, 0.002);
     // Bolsillos de cadera con cartera

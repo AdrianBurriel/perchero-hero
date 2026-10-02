@@ -1,13 +1,16 @@
 import './style.css';
 import { garments } from './garments';
 import { RackHero } from './rack/RackHero';
-import { mountCart, cartTarget, addToCart } from './ui/cart';
+import { mountCart, cartTarget, addToCart, inCart, onCartRemove } from './ui/cart';
 
 mountCart(document.querySelector<HTMLElement>('#cart-slot')!);
 
-// Portada: perchero de pared con todo el catálogo
+// Portada: perchero de pared con todo el catálogo. Lo que ya está en la cesta no se cuelga.
 const rack = new RackHero(document.querySelector<HTMLElement>('#rack')!, garments, {
   mount: 'wall',
-  // La prenda vuela a la cesta y se suma al aterrizar
-  onAddToCart: (i) => rack.flyTo(i, cartTarget()).then(() => addToCart(garments[i]!)),
+  gone: (i) => inCart(garments[i]!.id),
+  // La prenda se pliega, se empaqueta y vuela a la cesta; se suma al aterrizar
+  onAddToCart: (i) => rack.sendToCart(i, cartTarget()).then((ok) => ok && addToCart(garments[i]!)),
 });
+// Quitar de la cesta la devuelve a su percha
+onCartRemove((id) => rack.restore(garments.findIndex((g) => g.id === id)));
