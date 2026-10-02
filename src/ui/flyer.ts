@@ -118,8 +118,8 @@ interface Folding {
   height: number;      // alto de la prenda doblada (m)
   /** Mangas y doblez según `ms` desde que empieza a plegarse. */
   fold(ms: number): void;
-  /** Coloca el centro de la prenda doblada en (x, y) px con escala `s` px/m. */
-  place(x: number, y: number, s: number): void;
+  /** Coloca el centro de la prenda doblada en (x, y) px con escala `s` px/m; `z` ordena las capas. */
+  place(x: number, y: number, s: number, z?: number): void;
   /** Deshace todo: la prenda vuelve a su estado original y sin padre. */
   teardown(): void;
 }
@@ -211,8 +211,8 @@ function prepare(body: THREE.Group): Folding {
       }
       uBody.uFold.value = uSleeve.uFold.value = easeInOut(phase(ms, T.fold));
     },
-    place(x, y, s) {
-      holder.position.set(x, -(y + cy * s), 0);
+    place(x, y, s, z = 0) {
+      holder.position.set(x, -(y + cy * s), z);
       holder.scale.setScalar(s);
     },
     teardown() {
@@ -285,90 +285,112 @@ export function packAndFly(body: THREE.Group, from: Launch, to: Point): Promise<
 
 /* ---------- Comprar el look: montón de ropa doblada y, después, a la cesta de una en una ---------- */
 const PILE = {
-  stagger: 160,    // ms entre que empieza a plegarse una prenda y la siguiente
-  travel: 620,     // ms del viaje de cada prenda doblada hasta el montón
-  rest: 420,       // ms de pausa con el montón completo
-  gap: 380,        // ms entre que sale una prenda del montón y la siguiente
+  gap: 420,        // ms entre que sale del perchero una prenda y la siguiente
+  foldSpeed: 1.6,  // el plegado va más rápido que en el añadir individual
+  lift: [0, 260],  // se separa de la percha y se pone de frente
+  travel: [280, 900], // viaja al montón mientras termina de plegarse
+  lay: [450, 900], // se tumba al acercarse
+  rest: 350,       // ms de pausa con el montón completo
+  leaveGap: 380,   // ms entre que sale del montón una prenda y la siguiente
   fly: 860,        // ms de cada vuelo a la cesta
   tilt: 0.42,      // rad: inclinación de la cara superior hacia el espectador
 } as const;
 
+export interface PileItem {
+  width: number; // para ordenar el montón: las más anchas abajo (salen antes)
+  /** Suelta la prenda del perchero justo cuando le toca (null si ya no estaba). */
+  take: () => { body: THREE.Group; from: Launch } | null;
+}
+
 /**
- * Pliega todas las prendas a la vez (escalonadas), las apila tumbadas en `pile` (base del
- * montón, px) y luego las manda a `to` de una en una, de arriba abajo. `onLand(k)` avisa
- * cuando aterriza la k-ésima de `items`.
+ * Saca las prendas de una en una (de la más ancha a la más estrecha), cada una se pliega
+ * mientras viaja y se tumba sobre el montón en `pile` (base, px). Con el montón completo
+ * van a `to` de una en una, de arriba abajo. `onLand(k)` avisa al aterrizar `items[k]`.
  */
-export function pileAndFly(items: { body: THREE.Group; from: Launch }[], pile: Point, to: Point, onLand: (k: number) => void): Promise<void> {
-  const jobs = items.map(({ body, from }, k) => ({ k, from, f: prepare(body) }));
-  // Las más anchas abajo; un poco de desorden para que parezca ropa apilada a mano
-  const stack = [...jobs].sort((a, b) => b.f.width - a.f.width);
+export function pileAndFly(items: PileItem[], pile: Point, to: Point, onLand: (k: number) => void): Promise<void> {
+  const order = items.map((_, k) => k).sort((a, b) => items[b]!.width - items[a]!.width);
   const lay = -(Math.PI / 2 - PILE.tilt); // tumbada: la cara delantera mira hacia arriba
-  const slot = new Map<number, { x: number; y: number; ry: number; rz: number }>();
-  const scale = jobs[0]?.from.scale ?? 1;
-  let height = 0;
-  stack.forEach((j, level) => {
-    // Centro de la pieza apilada: la base de esta capa más medio grosor
-    const y = pile.y - (height + (j.f.depth * Math.cos(PILE.tilt)) / 2) * scale;
-    height += j.f.depth * Math.cos(PILE.tilt) * 0.92;
-    const r = Math.sin(level * 12.9898 + j.k * 78.233);
-    slot.set(j.k, { x: pile.x + r * 8, y, ry: r * 0.12, rz: r * 0.03 });
-  });
-  const foldEnd = T.fold[1];
-  const arriveLast = (jobs.length - 1) * PILE.stagger + foldEnd + PILE.travel;
-  const leaveAt = arriveLast + PILE.rest;
-  // Sale primero la de arriba del montón
-  const order = [...stack].reverse().map((j) => j.k);
+  const arriveEnd = (order.length - 1) * PILE.gap + PILE.travel[1];
+  const leaveAt = arriveEnd + 180 + PILE.rest;
+  interface Job { k: number; f: Folding; from: Launch; fromCenter: Point; t0: number; level: number; at: Point & { ry: number; rz: number }; done: boolean }
+  const jobs: Job[] = [];
+  let next = 0;
+  let height = 0; // m apilados hasta ahora
+  let scale = 1;
   const start = performance.now();
 
   return new Promise((resolve) => {
-    let landed = 0;
-    for (const j of jobs) {
-      const from = j.from;
-      const fromCenter = { x: from.x, y: from.y - j.f.cy * from.scale };
-      const at = slot.get(j.k)!;
-      const t0 = j.k * PILE.stagger;
-      const tLeave = leaveAt + order.indexOf(j.k) * PILE.gap;
-      run((now) => {
-        const ms = now - start - t0;
-        if (ms < 0) {
-          j.f.place(fromCenter.x, fromCenter.y, from.scale);
-          j.f.spin.rotation.y = from.rotY;
-          return true;
+    run((now) => {
+      const ms = now - start;
+      // Cada prenda sale del perchero solo cuando le toca: nunca hay dos abiertas a la vez
+      while (next < order.length && ms >= next * PILE.gap) {
+        const k = order[next]!;
+        const got = items[k]!.take();
+        if (got) {
+          const f = prepare(got.body);
+          if (!jobs.length) scale = got.from.scale;
+          const level = jobs.length;
+          const r = Math.sin(level * 12.9898 + k * 78.233); // desorden estable de ropa apilada a mano
+          const slab = f.depth * Math.cos(PILE.tilt);
+          const at = { x: pile.x + r * 8, y: pile.y - (height + slab / 2) * scale, ry: r * 0.12, rz: r * 0.03 };
+          height += slab * 0.92;
+          jobs.push({ k, f, from: got.from, fromCenter: { x: got.from.x, y: got.from.y - f.cy * got.from.scale }, t0: next * PILE.gap, level, at, done: false });
         }
-        // 1. Se separa de la percha y se pliega en su sitio
-        const lift = easeOut(phase(ms, T.lift));
+        next++;
+      }
+
+      for (const j of jobs) {
+        if (j.done) continue;
+        const lm = ms - j.t0;
+        const { from, fromCenter, at, f } = j;
+        // 1. Se separa de la percha y se pone de frente; se pliega deprisa
+        const lift = easeOut(phase(lm, PILE.lift));
         let p: Point = { x: fromCenter.x, y: fromCenter.y - LIFT_PX * lift };
         let s = from.scale;
-        j.f.spin.rotation.set(0, from.rotY * (1 - lift), 0);
-        j.f.fold(ms);
+        let rx = 0, ry = from.rotY * (1 - lift), rz = 0;
+        f.fold(lm * PILE.foldSpeed);
 
-        // 2. Viaja al montón y se tumba
-        const g = phase(ms, [foldEnd, foldEnd + PILE.travel]);
+        // 2. Viaja al montón y se tumba sobre la capa anterior
+        const g = phase(lm, PILE.travel);
         if (g > 0) {
           const e = easeInOut(g);
-          p = arc({ x: fromCenter.x, y: fromCenter.y - LIFT_PX }, at, e, 60);
+          p = arc({ x: fromCenter.x, y: fromCenter.y - LIFT_PX }, at, e, 70);
           s = from.scale + (scale - from.scale) * e;
-          j.f.spin.rotation.set(lay * e, at.ry * e, at.rz * e);
-          // Pequeño asentamiento al caer sobre el montón
-          if (g >= 1) p.y += Math.sin(Math.min(1, (ms - foldEnd - PILE.travel) / 180) * Math.PI) * 3;
+          const l = easeInOut(phase(lm, PILE.lay));
+          rx = lay * l;
+          ry = at.ry * l;
+          rz = at.rz * l;
+          // Pequeño asentamiento al caer
+          if (g >= 1) p.y += Math.sin(Math.min(1, (lm - PILE.travel[1]) / 180) * Math.PI) * 3;
         }
+        // Cada capa por delante de la anterior: sin cruces entre prendas
+        let z = (j.level + 1) * 60;
 
-        // 3. Del montón a la cesta
-        const fl = clamp01((now - start - tLeave) / PILE.fly);
+        // 3. Con el montón completo, a la cesta de arriba abajo
+        const leaveIndex = jobs.length - 1 - j.level;
+        const fl = next >= order.length ? clamp01((ms - leaveAt - leaveIndex * PILE.leaveGap) / PILE.fly) : 0;
         if (fl > 0) {
           const e = easeInOut(fl);
           p = arc(at, to, e);
           s = scale * (1 - (1 - END_SCALE) * Math.pow(e, 1.5));
-          j.f.spin.rotation.set(lay * (1 - e) - 0.2 * Math.sin(Math.PI * fl), at.ry + e * Math.PI * 2, at.rz + 0.25 * Math.sin(Math.PI * fl));
+          rx = lay * (1 - e) - 0.2 * Math.sin(Math.PI * fl);
+          ry = at.ry + e * Math.PI * 2;
+          rz = at.rz + 0.25 * Math.sin(Math.PI * fl);
+          z = 2000; // en vuelo, por encima de todo
         }
-        j.f.place(p.x, p.y, s);
+        f.spin.rotation.set(rx, ry, rz);
+        f.place(p.x, p.y, s, z);
 
-        if (fl < 1) return true;
-        j.f.teardown();
-        onLand(j.k);
-        if (++landed === jobs.length) resolve();
-        return false;
-      });
-    }
+        if (fl >= 1) {
+          j.done = true;
+          f.teardown();
+          onLand(j.k);
+        }
+      }
+
+      const finished = next >= order.length && jobs.every((j) => j.done);
+      if (finished) resolve();
+      return !finished;
+    });
   });
 }

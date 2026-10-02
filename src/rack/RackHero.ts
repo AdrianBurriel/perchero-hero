@@ -78,6 +78,7 @@ export class RackHero {
   private lastHitAt = 0;
   private returnFocus: HTMLElement | null = null;
   private detailIndex = 0;
+  private idle = false; // en pausa: ninguna prenda se pone de frente (p. ej. durante "Comprar el look")
   private readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   private readonly sideRad = THREE.MathUtils.degToRad(SIDE_ANGLE);
   private readonly push: number;
@@ -220,6 +221,17 @@ export class RackHero {
     return { body: it.body, launch };
   }
 
+  /** Pausa el giro y el apartado: las colgadas se quedan de lado mientras otra animación trabaja. */
+  setIdle(idle: boolean) {
+    this.idle = idle;
+  }
+
+  /** Ancho de la prenda (m), para ordenarlas. */
+  widthOf(i: number) {
+    const it = this.items[i];
+    return it ? new THREE.Box3().setFromObject(it.body).getSize(new THREE.Vector3()).x : 0;
+  }
+
   /** Caja del lienzo del perchero en pantalla. */
   get rect() {
     return this.el.canvas.getBoundingClientRect();
@@ -340,6 +352,7 @@ export class RackHero {
 
   /** Prenda que está de frente; ninguna si la seleccionada ya no está colgada. */
   private get active(): Item | null {
+    if (this.idle) return null;
     const it = this.hovered ?? this.focused ?? this.items[this.selected]!;
     return it.gone ? null : it;
   }

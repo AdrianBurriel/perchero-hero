@@ -33,22 +33,29 @@ const updateBuy = () => {
 // Comprar el look: todas se pliegan y forman un montón de ropa doblada en el centro del
 // perchero; después van a la cesta de una en una
 buy.addEventListener('click', () => {
-  const picked = garments.map((_, i) => ({ i, out: rack.detach(i) })).filter((p) => p.out);
-  if (!picked.length) return;
+  const left = garments.map((_, i) => i).filter((i) => !inCart(garments[i]!.id));
+  if (!left.length) return;
   const land = (i: number) => {
     addToCart(garments[i]!);
     showDetail(current);
     updateBuy();
   };
-  if (rack.prefersReducedMotion) return picked.forEach((p) => land(p.i));
+  if (rack.prefersReducedMotion) return left.forEach((i) => rack.detach(i) && land(i));
   buy.disabled = true;
+  rack.setIdle(true); // las que esperan su turno se quedan quietas, de lado
   const r = rack.rect;
   pileAndFly(
-    picked.map((p) => ({ body: p.out!.body, from: p.out!.launch })),
+    left.map((i) => ({
+      width: rack.widthOf(i),
+      take: () => {
+        const out = rack.detach(i);
+        return out && { body: out.body, from: out.launch };
+      },
+    })),
     { x: r.left + r.width / 2, y: r.top + r.height * 0.7 },
     cartTarget(),
-    (k) => land(picked[k]!.i),
-  );
+    (k) => land(left[k]!),
+  ).then(() => rack.setIdle(false));
 });
 
 /* ---------- Foto ---------- */
