@@ -2,7 +2,7 @@
 
 ## Objetivo
 Recrear, como ejercicio técnico, la interacción de un hero de tienda de ciclismo:
-un perchero con **11 maillots colgados** que reaccionan al puntero (balanceo físico)
+un perchero con **11 prendas colgadas** que reaccionan al puntero (balanceo físico)
 y abren un detalle al hacer clic. Texto de referencia del original:
 "11 maillots en percha · Pasa por encima de un maillot · haz clic para ver el detalle".
 
@@ -13,13 +13,27 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 
 ## Stack
 - Vite + TypeScript, sin framework (el hero debe poder portarse a un tema Shopify).
-- Física propia en ~60 líneas (sin librerías). GSAP solo para transiciones de UI (panel de detalle), no para el balanceo.
+- Render 3D con **three.js (WebGL)**: luz física, sombras sobre la pared, entorno `RoomEnvironment`.
+- Física propia (sin librerías). GSAP solo para transiciones de UI (panel de detalle), no para el balanceo.
+- Prendas y tejidos **procedurales** (sin assets externos), inventados: camisetas, camisas, jersey,
+  sudadera, cazadoras (denim, cuero, plumífero), sobrecamisa de pana, lino.
 
-## Modelo físico (ya implementado en `src/main.ts`)
-Cada percha es un péndulo amortiguado con pivote en el gancho:
-`α = -G·sin(θ) - c·ω + k·(θ₋₁ + θ₊₁ - 2θ) + viento`
+## Estructura
+- `src/main.ts`: parámetros, física, entrada (raycast), bucle y detalle.
+- `src/stage.ts`: renderer, cámara, luces, pared, raíl y percha (gancho giratorio + barra de madera).
+- `src/garment/pillow.ts`: malla "acolchada" a partir de una silueta 2D (dos caras cosidas en el canto).
+- `src/garment/builders.ts`: patrones y montaje de cada tipo de prenda (mangas, cuellos, botones…).
+- `src/garment/fabrics.ts`: texturas procedurales (color + normal map) por tipo de tejido.
+- `src/garments.ts`: catálogo ficticio (nombre, marca, material, tejido, colores).
+
+## Modelo físico (`src/main.ts`)
+Cada percha es un péndulo amortiguado con pivote en el raíl:
+`α = -G·sin(θ) - c·ω + k·(θ₋₁ + θ₊₁ - 2θ) + viento` (coupling actualmente a 0).
 - Integración semi-implícita de Euler con paso fijo (1/120 s) y acumulador.
-- El puntero transfiere impulso `ω += vx · GAIN` a la percha bajo el cursor.
+- El puntero transfiere impulso `ω += vx · GAIN` a la prenda bajo el cursor (raycast).
+- Segundo muelle: la tela se retrasa respecto a la percha (cizalla en x bajo los hombros).
+- En reposo las prendas están de lado (`SIDE_ANGLE`); la activa gira de frente y las vecinas se apartan
+  (`PUSH`, `PUSH_FALLOFF`), con muelle lento sin rebote (`TURN_STIFF`, `TURN_DAMP`).
 - Parámetros al inicio de `main.ts`; afinar a ojo.
 
 ## Tareas sugeridas (en orden)
@@ -28,7 +42,7 @@ Cada percha es un péndulo amortiguado con pivote en el gancho:
 3. Sombra dinámica sobre la pared que siga el ángulo.
 4. Panel de detalle animado (GSAP): entrada/salida, foco accesible, cierre con Esc.
 5. Soporte táctil: impulso por swipe con `pointermove`; probar en móvil.
-6. Sustituir los SVG procedurales por PNG/WebP recortados con alfa (propios).
+6. Más realismo en las prendas: pliegues, costuras visibles, ambient occlusion, o modelos GLB propios.
 7. Rendimiento: comprobar 60 fps; pausar el bucle fuera de viewport (IntersectionObserver).
 8. Portar a Shopify: encapsular en una clase `RackHero(container, items)` sin dependencias globales.
 

@@ -1,8 +1,7 @@
 :root {
-  --wall: #e4e1da;
+  --wall: #d6d0c4;
   --ink: #1f1e1b;
-  --rail: #3b3a36;
-  --item-w: clamp(78px, 9.2vw, 150px);
+  --muted: #6b6a65;
 }
 
 * { box-sizing: border-box; margin: 0; }
@@ -14,70 +13,71 @@ body {
 }
 
 .hero {
-  min-height: 100svh;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  padding: clamp(16px, 3vw, 40px);
+  height: 100svh;
+  min-height: 480px;
   overflow: hidden;
   position: relative;
 }
 
-.hero__head { display: flex; justify-content: space-between; gap: 24px; font-size: 14px; }
-
-.rack { position: relative; align-self: start; margin-top: 12vh; }
-
-.rack__rail {
-  position: absolute;
-  inset: 0 -4vw auto -4vw;
-  top: 12px;
-  height: 5px;
-  background: var(--rail);
-  border-radius: 3px;
-}
-
-.rack__items {
+.hero__head {
   display: flex;
-  justify-content: center;
-  padding: 0 2vw;
-  overflow: visible;
+  justify-content: space-between;
+  gap: 24px;
+  padding: clamp(16px, 3vw, 40px);
+  font-size: 14px;
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 1;
+  pointer-events: none;
 }
 
-.jersey {
-  flex: 0 0 var(--item-w);
-  width: var(--item-w);
-  /* De lado ocupan poco: se solapan como en un perchero real */
-  margin-inline: calc(var(--item-w) * -0.3);
-  position: relative;
-  aspect-ratio: 2 / 3;
-  background: none;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  /* Pivote = el gancho de la percha, que cuelga del raíl */
-  transform-origin: 50% 4.3%;
-  will-change: transform;
-  filter: brightness(var(--shade, 1)) drop-shadow(0 10px 8px rgba(0, 0, 0, 0.18));
+.rack { position: absolute; inset: 0; }
+
+.rack__stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: pan-y;
 }
-.jersey svg { width: 100%; height: 100%; display: block; pointer-events: none; }
-.jersey__body {
-  /* Pivote de la tela = línea de hombros sobre la percha (coordenadas del viewBox) */
-  transform-box: view-box;
-  transform-origin: 100px 76px;
-  will-change: transform;
+
+/* Botones solo para teclado/lectores: visualmente ocultos */
+.rack__list button {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
-.jersey:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+
+/* Nombre de la prenda activa: también es el indicador de foco al navegar con Tab */
+.rack__caption {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(16px, 4vh, 40px);
+  transform: translateX(-50%);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+.rack__list:focus-within ~ .rack__caption { text-decoration: underline; text-underline-offset: 4px; }
 
 .detail {
   position: fixed;
   right: clamp(16px, 3vw, 40px);
   bottom: clamp(16px, 3vw, 40px);
-  width: min(320px, calc(100vw - 32px));
-  padding: 20px;
-  background: #fff;
+  width: min(340px, calc(100vw - 32px));
+  padding: 22px;
+  background: #fbfaf7;
   border-radius: 4px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  z-index: 2;
 }
 .detail[hidden] { display: none; }
 .detail__close { position: absolute; top: 8px; right: 12px; background: none; border: 0; font-size: 22px; cursor: pointer; }
-.detail__name { font-size: 20px; }
-.detail__brand { margin-top: 4px; color: #6b6a65; }
+.detail__brand { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.detail__name { font-size: 22px; margin-top: 4px; }
+.detail__material { margin-top: 10px; font-size: 14px; }
+.detail__text { margin-top: 8px; font-size: 14px; color: var(--muted); line-height: 1.45; }

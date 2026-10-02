@@ -8,19 +8,23 @@
   <body>
     <main class="hero">
       <header class="hero__head">
-        <p class="hero__count">11 maillots en percha</p>
-        <p class="hero__hint">Pasa por encima de un maillot · haz clic para ver el detalle</p>
+        <p class="hero__count">11 prendas en percha</p>
+        <p class="hero__hint">Pasa por encima de una prenda · haz clic para ver el detalle</p>
       </header>
 
-      <section class="rack" aria-label="Perchero de maillots">
-        <div class="rack__rail" aria-hidden="true"></div>
-        <div class="rack__items" id="rail"></div>
+      <section class="rack" aria-label="Perchero de prendas">
+        <canvas class="rack__stage" id="stage" aria-hidden="true"></canvas>
+        <!-- Un botón por prenda para teclado y lectores de pantalla -->
+        <div class="rack__list" id="rail"></div>
+        <p class="rack__caption" id="caption" aria-hidden="true"></p>
       </section>
 
-      <aside class="detail" id="detail" hidden>
+      <aside class="detail" id="detail" role="dialog" aria-labelledby="detail-name" hidden>
         <button class="detail__close" id="detail-close" aria-label="Cerrar">×</button>
-        <h2 class="detail__name" id="detail-name"></h2>
         <p class="detail__brand" id="detail-brand"></p>
+        <h2 class="detail__name" id="detail-name"></h2>
+        <p class="detail__material" id="detail-material"></p>
+        <p class="detail__text" id="detail-text"></p>
       </aside>
     </main>
     <script type="module" src="/src/main.ts"></script>

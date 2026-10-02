@@ -1,5 +1,8 @@
 import './style.css';
-import { jerseys, type Jersey } from './jerseys';
+import * as THREE from 'three';
+import { garments, type GarmentData } from './garments';
+import { createStage, createHanger } from './stage';
+import { buildGarment, SHOULDER_Y } from './garment/builders';
 
 /* ---------- Parámetros de la simulación (afinar a ojo) ---------- */
 const GRAVITY = 38;      // rigidez del péndulo: mayor = oscila más rápido
@@ -10,106 +13,152 @@ const MAX_OMEGA = 1;     // límite de velocidad angular (rad/s) ≈ ±9° de ba
 const WIND = 0.12;       // brisa idle muy sutil (0 para desactivar)
 const STEP = 1 / 120;    // paso fijo de integración
 
-/* Segundo muelle: el cuerpo del maillot se retrasa respecto a la percha */
+/* Segundo muelle: el cuerpo de la prenda se retrasa respecto a la percha */
 const LAG_STIFF = 90;    // rigidez de la tela: mayor = sigue antes a la percha
 const LAG_DAMP = 7;      // amortiguación de la tela
 const LAG_INERTIA = 0.6; // cuánto se opone la tela a la aceleración de la percha
 const LAG_MAX = 0.12;    // deformación máxima (rad)
 
 /* Giro de lado → de frente al pasar por encima */
-const SIDE_ANGLE = 76;   // grados de rotateY en reposo (90 = totalmente de canto)
+const SIDE_ANGLE = 76;   // grados en reposo (90 = totalmente de canto)
 const TURN_STIFF = 28;   // rapidez del giro: menor = más lento (~1 s con 28)
 const TURN_DAMP = 11.5;  // ≥ 2·√TURN_STIFF: llega sin rebote; menor deja un pequeño rebote
-const SIDE_SHADE = 0.78; // brillo de las prendas de lado (1 = sin oscurecer)
-const PUSH = 0.34;       // cuánto se apartan las vecinas (en anchos de prenda)
+const SPACING = 0.12;    // separación entre perchas en el raíl (m)
+const PUSH = 0.28;       // cuánto se apartan las vecinas (m)
 const PUSH_FALLOFF = 0.3; // las lejanas se apartan menos: el perchero se comprime
+const HOVER_GRACE = 180; // ms sin tocar prenda antes de soltar la activa (evita parpadeo en huecos)
 
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ---------- SVG procedural de percha + maillot ---------- */
-function jerseySVG({ color, accent }: Jersey): string {
-  return `
-  <svg viewBox="0 0 200 300" aria-hidden="true" focusable="false">
-    <path d="M100 40 V22 a9 9 0 1 0 -9 -9" fill="none" stroke="#8a8a85" stroke-width="3" stroke-linecap="round"/>
-    <path d="M100 40 L32 76 M100 40 L168 76 M32 76 H168" fill="none" stroke="#8a8a85" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <g class="jersey__body">
-      <path d="M62 70 L100 82 L138 70 L188 100 L172 142 L150 130 L150 272 Q100 284 50 272 L50 130 L28 142 L12 100 Z" fill="${color}"/>
-      <path d="M62 70 L100 82 L138 70 L132 64 Q100 74 68 64 Z" fill="${accent}"/>
-      <rect x="50" y="196" width="100" height="14" fill="${accent}" opacity=".85"/>
-    </g>
-  </svg>`;
-}
+/* ---------- Escena ---------- */
+const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;
+const list = document.querySelector<HTMLElement>('#rail')!;
+const caption = document.querySelector<HTMLElement>('#caption')!;
+const detail = document.querySelector<HTMLElement>('#detail')!;
+const detailName = document.querySelector<HTMLElement>('#detail-name')!;
+const detailBrand = document.querySelector<HTMLElement>('#detail-brand')!;
+const detailMaterial = document.querySelector<HTMLElement>('#detail-material')!;
+const detailText = document.querySelector<HTMLElement>('#detail-text')!;
+const detailClose = document.querySelector<HTMLButtonElement>('#detail-close')!;
 
-/* ---------- Montaje del DOM ---------- */
+const { renderer, scene, camera, resize } = createStage(canvas);
+
 interface Item {
-  el: HTMLButtonElement;
-  body: SVGGElement;
+  data: GarmentData;
+  slot: THREE.Group;   // posición en el raíl (se aparta)
+  swing: THREE.Group;  // balanceo alrededor del raíl
+  turner: THREE.Group; // giro de lado a frente
+  body: THREE.Group;   // tela (cizalla por retraso)
+  hit: THREE.Mesh[];
+  baseX: number;
   angle: number;
   omega: number;
   lag: number;  // deformación de la tela relativa a la percha (rad)
   lagV: number;
   turn: number; // 0 = de lado, 1 = de frente
   turnV: number;
-  shift: number; // desplazamiento por el raíl, en anchos de prenda
+  shift: number; // desplazamiento por el raíl (m)
   shiftV: number;
-  shade: number; // último brillo aplicado, para no repintar el filtro sin cambios
-  data: Jersey;
 }
-
-const rail = document.querySelector<HTMLElement>('#rail')!;
-const detail = document.querySelector<HTMLElement>('#detail')!;
-const detailName = document.querySelector<HTMLElement>('#detail-name')!;
-const detailBrand = document.querySelector<HTMLElement>('#detail-brand')!;
 
 let hovered: Item | null = null;
 let focused: Item | null = null;
+const byMesh = new Map<THREE.Object3D, Item>();
 
-const items: Item[] = jerseys.map((data) => {
-  const el = document.createElement('button');
-  el.className = 'jersey';
-  el.type = 'button';
-  el.setAttribute('aria-label', `${data.name}, ${data.brand}`);
-  el.innerHTML = jerseySVG(data);
-  el.addEventListener('click', () => openDetail(data));
-  rail.append(el);
-  const body = el.querySelector<SVGGElement>('.jersey__body')!;
-  const item: Item = { el, body, angle: 0, omega: 0, lag: 0, lagV: 0, turn: 0, turnV: 0, shift: 0, shiftV: 0, shade: -1, data };
-  // Ratón y teclado comparten estado: la prenda activa se pone de frente
-  el.addEventListener('pointerenter', () => (hovered = item));
-  el.addEventListener('focus', () => (focused = item));
-  el.addEventListener('blur', () => focused === item && (focused = null));
+const items: Item[] = garments.map((data, i) => {
+  const slot = new THREE.Group();
+  const swing = new THREE.Group();
+  const turner = new THREE.Group();
+  const { hook, frame } = createHanger();
+  const garment = buildGarment(data, i + 1);
+  const body = garment.body;
+  body.matrixAutoUpdate = false;
+  turner.add(frame, body);
+  swing.add(hook, turner);
+  slot.add(swing);
+  const baseX = (i - (garments.length - 1) / 2) * SPACING;
+  slot.position.x = baseX;
+  scene.add(slot);
+
+  const item: Item = {
+    data, slot, swing, turner, body, hit: garment.hit, baseX,
+    angle: 0, omega: 0, lag: 0, lagV: 0, turn: 0, turnV: 0, shift: 0, shiftV: 0,
+  };
+  for (const m of garment.hit) byMesh.set(m, item);
+
+  // Botón accesible (invisible) por prenda: Tab la pone de frente, Enter abre el detalle
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = `${data.name}, ${data.brand}`;
+  btn.addEventListener('focus', () => (focused = item));
+  btn.addEventListener('blur', () => focused === item && (focused = null));
+  btn.addEventListener('click', () => openDetail(item.data, btn));
+  list.append(btn);
   return item;
 });
+const hitMeshes = items.flatMap((it) => it.hit);
 
-function openDetail(j: Jersey) {
-  detailName.textContent = j.name;
-  detailBrand.textContent = j.brand;
+/* ---------- Detalle ---------- */
+let returnFocus: HTMLElement | null = null;
+function openDetail(d: GarmentData, from: HTMLElement | null = null) {
+  detailName.textContent = d.name;
+  detailBrand.textContent = d.brand;
+  detailMaterial.textContent = d.material;
+  detailText.textContent = d.description;
   detail.hidden = false;
+  returnFocus = from ?? (document.activeElement as HTMLElement | null);
+  detailClose.focus();
 }
-document.querySelector('#detail-close')!.addEventListener('click', () => (detail.hidden = true));
-addEventListener('keydown', (e) => e.key === 'Escape' && (detail.hidden = true));
+function closeDetail() {
+  if (detail.hidden) return;
+  detail.hidden = true;
+  returnFocus?.focus();
+}
+detailClose.addEventListener('click', closeDetail);
+addEventListener('keydown', (e) => e.key === 'Escape' && closeDetail());
 
-/* ---------- Entrada: el puntero transfiere impulso a la percha que toca ---------- */
+/* ---------- Entrada: raycast sobre las prendas ---------- */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
 let lastX = 0;
 let lastT = 0;
-rail.addEventListener('pointermove', (e) => {
+let lastHitAt = 0;
+
+function pick(e: MouseEvent): Item | null {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hit = raycaster.intersectObjects(hitMeshes, false)[0];
+  return hit ? byMesh.get(hit.object) ?? null : null;
+}
+
+canvas.addEventListener('pointermove', (e) => {
   const now = performance.now();
   const vx = lastT ? ((e.clientX - lastX) / Math.max(now - lastT, 1)) * 1000 : 0; // px/s
   lastX = e.clientX;
   lastT = now;
 
-  const hit = (e.target as HTMLElement).closest<HTMLElement>('.jersey');
-  const item = items.find((i) => i.el === hit);
+  const item = pick(e);
+  if (item) {
+    hovered = item;
+    lastHitAt = now;
+  } else if (now - lastHitAt > HOVER_GRACE) {
+    hovered = null;
+  }
+  canvas.style.cursor = item ? 'pointer' : '';
   if (!item || reduceMotion) return;
   item.omega = Math.max(-MAX_OMEGA, Math.min(MAX_OMEGA, item.omega + vx * GAIN));
 });
-// Se suelta al salir del perchero, no de cada prenda: así no parpadea al cruzar los huecos
-rail.addEventListener('pointerleave', () => {
+canvas.addEventListener('pointerleave', () => {
   lastT = 0;
   hovered = null;
 });
+canvas.addEventListener('click', (e) => {
+  const item = pick(e);
+  if (item) openDetail(item.data);
+});
 
-/* ---------- Física: péndulos amortiguados acoplados con vecinas ---------- */
+/* ---------- Física ---------- */
 function step(dt: number, t: number) {
   const active = hovered ?? focused;
   const activeIndex = active ? items.indexOf(active) : -1;
@@ -153,15 +202,31 @@ function step(dt: number, t: number) {
   });
 }
 
-// El ancho se lee solo al redimensionar; el desplazamiento va en anchos de prenda para no saltar
-let itemWidth = 0;
-new ResizeObserver(() => (itemWidth = items[0]?.el.offsetWidth ?? 0)).observe(rail);
+/* ---------- Bucle ---------- */
+const sideRad = THREE.MathUtils.degToRad(SIDE_ANGLE);
+
+function apply() {
+  for (const it of items) {
+    it.slot.position.x = it.baseX + it.shift;
+    it.swing.rotation.z = it.angle;
+    it.turner.rotation.y = (1 - it.turn) * sideRad;
+    // Cizalla en x proporcional a la distancia bajo los hombros: el bajo se retrasa más que el cuello
+    const k = -it.lag;
+    it.body.matrix.set(1, k, 0, -k * SHOULDER_Y, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
+    it.body.matrixWorldNeedsUpdate = true;
+  }
+  const active = hovered ?? focused;
+  const text = active ? `${active.data.name} · ${active.data.brand}` : '';
+  if (caption.textContent !== text) caption.textContent = text;
+}
 
 let prev = performance.now();
 let accumulator = 0;
 let clock = 0;
+let running = true;
 
 function frame(now: number) {
+  if (!running) return;
   accumulator += Math.min((now - prev) / 1000, 0.05);
   prev = now;
   while (accumulator >= STEP) {
@@ -169,20 +234,29 @@ function frame(now: number) {
     step(STEP, clock);
     accumulator -= STEP;
   }
-  for (const it of items) {
-    const side = (1 - it.turn) * SIDE_ANGLE;
-    const x = it.shift * itemWidth;
-    it.el.style.transform = `translateX(${x}px) perspective(900px) rotate(${it.angle}rad) rotateY(${side}deg)`;
-    // La que gira queda por encima de sus vecinas
-    it.el.style.zIndex = String(1 + Math.round(Math.max(0, it.turn) * 10));
-    const shade = Math.round((SIDE_SHADE + (1 - SIDE_SHADE) * Math.min(1, Math.max(0, it.turn))) * 100) / 100;
-    if (shade !== it.shade) {
-      it.shade = shade;
-      it.el.style.setProperty('--shade', String(shade));
-    }
-    // skewX en vez de rotate: el bajo se desplaza más que los hombros y queda horizontal, como la tela
-    it.body.style.transform = `skewX(${-it.lag}rad)`;
-  }
+  apply();
+  renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
+
+// Tamaño del lienzo ligado a su caja: sin saltos al redimensionar
+new ResizeObserver(([entry]) => {
+  if (!entry) return;
+  const { width, height } = entry.contentRect;
+  resize(width, height);
+  renderer.render(scene, camera);
+}).observe(canvas);
+
+// Fuera de pantalla no se simula ni se pinta
+new IntersectionObserver(([entry]) => {
+  const visible = entry?.isIntersecting ?? true;
+  if (visible && !running) {
+    running = true;
+    prev = performance.now();
+    requestAnimationFrame(frame);
+  } else if (!visible) {
+    running = false;
+  }
+}).observe(canvas);
+
 requestAnimationFrame(frame);
