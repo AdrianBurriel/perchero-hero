@@ -37,7 +37,10 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - `src/garment/pillow.ts`: malla "acolchada" a partir de una silueta 2D (dos caras cosidas en el canto).
 - `src/garment/builders.ts`: patrones y montaje de cada tipo de prenda (mangas, cuellos, botones…).
 - `src/garment/fabrics.ts`: texturas procedurales (color + normal map) por tipo de tejido.
-- `src/garments.ts`: catálogo ficticio con `id` (`garments` = portada, `lookGarments` = prendas de los looks;
+- `src/ui/productCard.ts`: ficha de producto común (altura fija, precio, botón «Ver producto» simulado)
+  y `toast()` para acciones simuladas (ver ficha, comprar el look).
+- `src/style.css`: sistema visual común. Tipografías Instrument Serif (títulos) e Inter (texto) desde Google Fonts.
+- `src/garments.ts`: catálogo ficticio con `id` y `price` (€) (`garments` = portada, `lookGarments` = prendas de los looks;
   `byId(id)` busca en ambos).
 - `src/looks.ts`: looks (foto, texto y prendas con posición del punto en % sobre la foto).
 - `public/looks/`: fotos de los looks (`look-01.jpg`, aportada por el usuario). Si falta, se ve el `*-placeholder.svg`.

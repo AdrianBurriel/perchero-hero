@@ -3,15 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Perchero hero · prototipo</title>
+    <title>Perchero · prototipo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   </head>
   <body>
     <main class="hero">
-      <header class="hero__head">
-        <p class="hero__count">11 prendas en percha</p>
-        <p class="hero__hint">Pasa por encima de una prenda · haz clic para ver el detalle</p>
-        <a class="hero__link" href="/shop-the-look.html">Shop the look <span aria-hidden="true">→</span></a>
+      <header class="topbar topbar--over">
+        <p class="topbar__crumb">Estudio / 11 prendas en percha</p>
+        <p class="topbar__brand">Estudio</p>
+        <a class="topbar__link" href="/shop-the-look.html">Shop the look <span aria-hidden="true">→</span></a>
       </header>
+      <p class="hero__hint">Pasa por encima de una prenda · haz clic para ver el detalle</p>
       <!-- RackHero monta aquí el lienzo, las flechas y el detalle -->
       <section class="hero__rack" id="rack" aria-label="Perchero de prendas"></section>
     </main>

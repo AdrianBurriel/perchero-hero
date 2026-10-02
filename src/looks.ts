@@ -19,7 +19,7 @@ export interface Look {
 
 export const looks: Look[] = [
   {
-    title: 'Look 01 · Traje camel en la ciudad',
+    title: 'Traje camel en la ciudad',
     subtitle: 'Traje camel con camisa estampada y abrigo de paño azul al brazo.',
     image: '/looks/look-01.jpg',
     ratio: 686 / 1031,

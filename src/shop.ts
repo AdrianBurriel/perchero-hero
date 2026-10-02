@@ -2,78 +2,84 @@ import './style.css';
 import { byId } from './garments';
 import { looks } from './looks';
 import { RackHero } from './rack/RackHero';
+import { cardHTML, fillCard, bindCardCta, formatPrice, toast } from './ui/productCard';
 
-/* Shop the look: foto del modelo con puntos sobre cada prenda + burro con esas prendas.
-   Los puntos y el burro comparten la prenda activa. */
+/* Shop the look: foto del modelo con puntos sobre cada prenda + perchero con esas prendas.
+   Puntos, perchero y detalle comparten la prenda activa. */
 
 const look = looks[0]!;
 const garments = look.items.map((it) => byId(it.id));
+const $ = <T extends HTMLElement>(s: string) => document.querySelector<T>(s)!;
 
-document.querySelector('#look-title')!.textContent = look.title;
-document.querySelector('#look-subtitle')!.textContent = look.subtitle;
+$('#look-eyebrow').textContent = `Shop the look · 01`;
+$('#look-title').textContent = look.title;
+$('#look-subtitle').textContent = look.subtitle;
+$('#look-count').textContent = `${garments.length} prendas`;
+$('#look-total').textContent = formatPrice(garments.reduce((s, g) => s + g.price, 0));
+$('#buy-look').addEventListener('click', () => toast(`Simulación: se añadirían ${garments.length} prendas a la cesta`));
 
-const img = document.querySelector<HTMLImageElement>('#look-img')!;
-document.querySelector<HTMLElement>('.look__frame')!.style.setProperty('--ratio', String(look.ratio));
-
-// Encuadre: la capa (foto + puntos) se amplía y se desplaza para centrar el foco, sin salirse del marco
-const { x: fx, y: fy, zoom } = look.focus;
-const offset = (f: number) => Math.min(0, Math.max(1 - zoom, 0.5 - (f / 100) * zoom)) * 100;
-const layer = document.querySelector<HTMLElement>('.look__layer')!;
-Object.assign(layer.style, { width: `${zoom * 100}%`, height: `${zoom * 100}%`, left: `${offset(fx)}%`, top: `${offset(fy)}%` });
-
-/* ---------- Detalle sobre la foto ---------- */
-const detail = document.querySelector<HTMLElement>('#look-detail')!;
-const field = (id: string) => document.querySelector<HTMLElement>(`#look-detail-${id}`)!;
-let detailOpen = true;
-
-function showDetail(i: number) {
-  const g = garments[i];
-  if (!g) return;
-  field('brand').textContent = g.brand;
-  field('name').textContent = g.name;
-  field('material').textContent = g.material;
-  field('text').textContent = g.description;
-}
-function openDetail(i: number) {
-  showDetail(i);
-  detailOpen = true;
-  detail.hidden = false;
-}
-document.querySelector('#look-detail-close')!.addEventListener('click', () => {
-  detailOpen = false;
-  detail.hidden = true;
-});
-addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && detailOpen) {
-    detailOpen = false;
-    detail.hidden = true;
-  }
-});
+/* ---------- Foto ---------- */
+const img = $<HTMLImageElement>('#look-img');
+$('.look__frame').style.setProperty('--ratio', String(look.ratio));
 img.alt = look.alt;
 // Si aún no existe la foto propia, se muestra la ilustración provisional
 img.addEventListener('error', () => img.src !== location.origin + look.placeholder && (img.src = look.placeholder), { once: true });
 img.src = look.image;
 
-const spots = document.querySelector<HTMLElement>('#look-spots')!;
+// Encuadre: la capa (foto + puntos) se amplía y se desplaza para centrar el foco, sin salirse del marco
+const { x: fx, y: fy, zoom } = look.focus;
+const offset = (f: number) => Math.min(0, Math.max(1 - zoom, 0.5 - (f / 100) * zoom)) * 100;
+Object.assign($('.look__layer').style, { width: `${zoom * 100}%`, height: `${zoom * 100}%`, left: `${offset(fx)}%`, top: `${offset(fy)}%` });
+
+/* ---------- Detalle sobre la foto ---------- */
+const detail = $('#look-detail');
+detail.innerHTML = cardHTML('look-detail-name');
+bindCardCta(detail);
+let detailOpen = true;
+let current = 0;
+
+const showDetail = (i: number) => {
+  const g = garments[i];
+  if (!g) return;
+  current = i;
+  fillCard(detail, g, i, garments.length);
+};
+const setOpen = (open: boolean) => {
+  detailOpen = open;
+  detail.hidden = !open;
+  if (open) showDetail(current);
+};
+detail.querySelector('.card__close')!.addEventListener('click', () => setOpen(false));
+addEventListener('keydown', (e) => e.key === 'Escape' && setOpen(false));
+
+/* ---------- Puntos ---------- */
+const spots = $('#look-spots');
 const buttons = look.items.map((it, i) => {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'look__spot';
   b.style.left = `${it.x}%`;
   b.style.top = `${it.y}%`;
-  b.setAttribute('aria-label', `${garments[i]!.name}: ver en el burro`);
+  b.setAttribute('aria-label', `${garments[i]!.name}: ver en el perchero`);
+  // Etiqueta al pasar por encima (lado según dónde cae el punto, para no salirse de la foto)
+  const label = document.createElement('span');
+  label.className = `look__spot-label${it.x > 50 ? ' is-left' : ''}`;
+  label.textContent = garments[i]!.name;
+  label.setAttribute('aria-hidden', 'true');
+  b.append(label);
   b.addEventListener('pointerenter', () => rack.preview(i));
   b.addEventListener('pointerleave', () => rack.preview(null));
   b.addEventListener('focus', () => rack.select(i));
   b.addEventListener('click', () => {
     rack.select(i);
-    openDetail(i);
+    current = i;
+    setOpen(true);
   });
   spots.append(b);
   return b;
 });
 
-const rack = new RackHero(document.querySelector<HTMLElement>('#look-rack')!, garments, {
+const rack = new RackHero($('#look-rack'), garments, {
   mount: 'wall', // mismo perchero que la portada
   transparent: true,
   spacing: 0.16,
@@ -81,8 +87,12 @@ const rack = new RackHero(document.querySelector<HTMLElement>('#look-rack')!, ga
   initial: 0,
   onChange: (i) => {
     buttons.forEach((b, j) => b.classList.toggle('is-active', i === j));
+    current = i;
     // El detalle abierto sigue a la prenda activa del perchero
     if (detailOpen) showDetail(i);
   },
-  onOpen: openDetail,
+  onOpen: (i) => {
+    current = i;
+    setOpen(true);
+  },
 });

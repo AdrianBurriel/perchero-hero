@@ -3,17 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Shop the look · prototipo</title>
+    <title>Shop the look · Perchero</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   </head>
-  <body>
-    <header class="page-head">
-      <a class="page-head__back" href="/"><span aria-hidden="true">←</span> Perchero</a>
-      <p class="page-head__crumb">Estudio / Shop the look</p>
+  <body class="page">
+    <header class="topbar">
+      <a class="topbar__back" href="/"><span aria-hidden="true">←</span> Perchero</a>
+      <p class="topbar__brand">Estudio</p>
+      <p class="topbar__crumb">Shop the look</p>
     </header>
     <main class="look">
       <div class="look__intro">
-        <h1 class="look__title" id="look-title"></h1>
-        <p class="look__subtitle" id="look-subtitle"></p>
+        <div class="look__heading">
+          <p class="eyebrow" id="look-eyebrow"></p>
+          <h1 class="look__title" id="look-title"></h1>
+          <p class="look__subtitle" id="look-subtitle"></p>
+        </div>
+        <div class="look__buy">
+          <p class="look__total"><span id="look-count"></span><strong id="look-total"></strong></p>
+          <button class="btn btn--dark" id="buy-look" type="button">Comprar el look</button>
+        </div>
       </div>
       <figure class="look__photo">
         <!-- Marco con la proporción de la foto: los puntos (en %) caen siempre sobre su prenda -->
@@ -25,13 +36,7 @@
             <div class="look__spots" id="look-spots"></div>
           </div>
           <!-- Detalle de la prenda activa del perchero, abierto desde el principio -->
-          <aside class="look__detail" id="look-detail" aria-live="polite" aria-labelledby="look-detail-name">
-            <button class="detail__close" id="look-detail-close" type="button" aria-label="Cerrar detalle">×</button>
-            <p class="detail__brand" id="look-detail-brand"></p>
-            <h2 class="detail__name" id="look-detail-name"></h2>
-            <p class="detail__material" id="look-detail-material"></p>
-            <p class="detail__text" id="look-detail-text"></p>
-          </aside>
+          <aside class="look__detail" id="look-detail" aria-live="polite" aria-labelledby="look-detail-name"></aside>
         </div>
       </figure>
       <section class="look__rack" id="look-rack" aria-label="Perchero con las prendas del look"></section>

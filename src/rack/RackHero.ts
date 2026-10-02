@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { GarmentData } from '../garments';
 import { createStage, createHanger, type Mount } from '../stage';
 import { buildGarment } from '../garment/builders';
+import { cardHTML, fillCard, bindCardCta } from '../ui/productCard';
 
 /* Perchero interactivo reutilizable: crea su propio DOM (lienzo, flechas, detalle)
    dentro del contenedor, sin dependencias globales. Lo usan la portada y Shop the look. */
@@ -42,7 +43,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const TEMPLATE = `
   <canvas class="rack__stage" aria-hidden="true"></canvas>
   <div class="rack__list"></div>
-  <p class="rack__caption" aria-hidden="true"></p>
+  <p class="rack__caption" aria-hidden="true"><span class="rack__caption-name"></span><span class="rack__caption-brand"></span></p>
   <nav class="rack__nav" aria-label="Pasar prendas">
     <span class="rack__counter" aria-live="polite"></span>
     <button class="rack__arrow" data-dir="-1" type="button" aria-label="Prenda anterior">
@@ -52,13 +53,7 @@ const TEMPLATE = `
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6" /></svg>
     </button>
   </nav>
-  <aside class="detail" role="dialog" aria-labelledby="" hidden>
-    <button class="detail__close" type="button" aria-label="Cerrar">×</button>
-    <p class="detail__brand"></p>
-    <h2 class="detail__name"></h2>
-    <p class="detail__material"></p>
-    <p class="detail__text"></p>
-  </aside>`;
+  <aside class="detail" role="dialog" hidden></aside>`;
 
 let uid = 0;
 
@@ -82,9 +77,8 @@ export class RackHero {
   private readonly byMesh = new Map<THREE.Object3D, Item>();
   private readonly stage: ReturnType<typeof createStage>;
   private readonly el: {
-    canvas: HTMLCanvasElement; list: HTMLElement; caption: HTMLElement; counter: HTMLElement;
+    canvas: HTMLCanvasElement; list: HTMLElement; captionName: HTMLElement; captionBrand: HTMLElement; counter: HTMLElement;
     prev: HTMLButtonElement; next: HTMLButtonElement; detail: HTMLElement; close: HTMLButtonElement;
-    name: HTMLElement; brand: HTMLElement; material: HTMLElement; text: HTMLElement;
   };
 
   constructor(private readonly container: HTMLElement, garments: GarmentData[], private readonly opts: RackOptions = {}) {
@@ -96,13 +90,15 @@ export class RackHero {
     container.insertAdjacentHTML('beforeend', TEMPLATE);
     const q = <T extends Element>(s: string) => container.querySelector<T>(s)!;
     const nameId = `rack-detail-${++uid}`;
+    const detail = q<HTMLElement>('.detail');
+    detail.innerHTML = cardHTML(nameId);
+    detail.setAttribute('aria-labelledby', nameId);
+    bindCardCta(detail);
     this.el = {
-      canvas: q('.rack__stage'), list: q('.rack__list'), caption: q('.rack__caption'), counter: q('.rack__counter'),
-      prev: q('[data-dir="-1"]'), next: q('[data-dir="1"]'), detail: q('.detail'), close: q('.detail__close'),
-      name: q('.detail__name'), brand: q('.detail__brand'), material: q('.detail__material'), text: q('.detail__text'),
+      canvas: q('.rack__stage'), list: q('.rack__list'), counter: q('.rack__counter'),
+      captionName: q('.rack__caption-name'), captionBrand: q('.rack__caption-brand'),
+      prev: q('[data-dir="-1"]'), next: q('[data-dir="1"]'), detail, close: q('.card__close'),
     };
-    this.el.name.id = nameId;
-    this.el.detail.setAttribute('aria-labelledby', nameId);
 
     const railHalf = ((garments.length - 1) / 2) * spacing + this.push + RAIL_MARGIN;
     this.stage = createStage(this.el.canvas, { mount: opts.mount ?? 'wall', railHalf, transparent: opts.transparent });
@@ -110,6 +106,7 @@ export class RackHero {
     this.items = garments.map((data, i) => this.mountItem(data, i, (i - (garments.length - 1) / 2) * spacing));
     this.bindEvents();
     this.select(this.selected);
+    this.step(0, true); // arranca ya en su sitio: la seleccionada de frente, sin animación inicial
 
     // Tamaño del lienzo ligado a su caja: sin saltos al redimensionar
     new ResizeObserver(([entry]) => {
@@ -148,10 +145,7 @@ export class RackHero {
     const d = this.items[i]?.data;
     if (!d) return;
     if (this.opts.onOpen) return this.opts.onOpen(i);
-    this.el.name.textContent = d.name;
-    this.el.brand.textContent = d.brand;
-    this.el.material.textContent = d.material;
-    this.el.text.textContent = d.description;
+    fillCard(this.el.detail, d, i, this.items.length);
     this.el.detail.hidden = false;
     this.returnFocus = from ?? (document.activeElement as HTMLElement | null);
     this.el.close.focus();
@@ -243,7 +237,7 @@ export class RackHero {
   }
 
   /* ---------- Muelles de giro y apartado ---------- */
-  private step(dt: number) {
+  private step(dt: number, snap = false) {
     const activeIndex = this.items.indexOf(this.active);
     this.items.forEach((it, i) => {
       // Muelle del giro hacia su objetivo (de frente si está activa)
@@ -251,7 +245,7 @@ export class RackHero {
       // Las vecinas se apartan a cada lado de la activa, menos cuanto más lejos
       const d = i - activeIndex;
       const shiftTarget = d === 0 ? 0 : (Math.sign(d) * this.push) / (1 + PUSH_FALLOFF * (Math.abs(d) - 1));
-      if (this.reduceMotion) {
+      if (this.reduceMotion || snap) {
         it.turn = target;
         it.turnV = 0;
         it.shift = shiftTarget;
@@ -271,8 +265,10 @@ export class RackHero {
       it.turner.rotation.y = (1 - it.turn) * this.sideRad;
     }
     const active = this.active;
-    const text = `${active.data.name} · ${active.data.brand}`;
-    if (this.el.caption.textContent !== text) this.el.caption.textContent = text;
+    if (this.el.captionName.textContent !== active.data.name) {
+      this.el.captionName.textContent = active.data.name;
+      this.el.captionBrand.textContent = active.data.brand;
+    }
     const index = this.items.indexOf(active);
     if (index !== this.lastActive) {
       this.lastActive = index;
