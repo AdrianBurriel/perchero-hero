@@ -83,16 +83,33 @@ export function startLoader(): Loader {
 
   const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 40);
   camera.position.set(0, 0.75, 2.3);
-  camera.lookAt(0, 0.2, 0);
+  camera.lookAt(0, 0.16, 0);
+  const label = root.querySelector<HTMLElement>('.loader__label');
+  const toPx = (p: THREE.Vector3, h: number) => ((1 - p.clone().project(camera).y) / 2) * h;
+  // Centrado: el conjunto percha (gancho arriba) + sombra + texto queda en el centro vertical de la
+  // capa (100dvh); el texto va justo bajo la sombra. Se desplaza la imagen con setViewOffset.
   const resize = () => {
-    renderer.setSize(innerWidth, innerHeight, false);
-    camera.aspect = innerWidth / innerHeight;
+    const w = root.clientWidth;
+    const h = root.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
     // En vertical se aleja un poco para que quepa el giro de la percha
     camera.zoom = Math.min(1, camera.aspect / 0.75);
+    camera.clearViewOffset();
     camera.updateProjectionMatrix();
+    const top = toPx(new THREE.Vector3(0, REST_Y + 0.02, 0), h);   // arriba del gancho
+    const floor = toPx(new THREE.Vector3(0, 0, 0.08), h);          // borde delantero de la sombra
+    const labelGap = 22;
+    const labelH = label?.offsetHeight ?? 14;
+    const bottom = floor + labelGap + labelH;
+    const dy = top - (h - (bottom - top)) / 2; // lo que hay que subir la imagen para centrar
+    camera.setViewOffset(w, h, 0, dy, w, h);
+    camera.updateProjectionMatrix();
+    if (label) label.style.top = `${floor - dy + labelGap}px`;
   };
   resize();
   addEventListener('resize', resize);
+  document.fonts?.ready.then(resize); // el alto del texto cambia al cargar la fuente
 
   // Sombra difusa en el suelo: crece y se oscurece cuanto más cerca está la percha
   const blob = document.createElement('canvas');

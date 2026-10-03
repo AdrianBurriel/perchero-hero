@@ -72,7 +72,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   con muelles estilo Framer Motion (`Spring`) y sombra difusa en el suelo. `startLoader()` → `await loader.intro`
   (la percha queda quieta y la página monta su `RackHero`, que bloquea el hilo un instante) → `loader.finish()`:
   cuando hay `load`, fuentes y primer fotograma, la percha toma impulso y la capa sube (CSS `translateY(-100%)`),
-  descubriendo la página de abajo arriba. Nunca dura menos de `MIN_MS` (2 s). Necesita `build.target: 'es2022'` (await en el nivel superior).
+  descubriendo la página de abajo arriba. Nunca dura menos de `MIN_MS` (2 s). La capa mide `100dvh` y el conjunto
+  (percha, sombra y texto) se centra en vertical (`setViewOffset`; el texto se coloca bajo la sombra). Necesita `build.target: 'es2022'` (await en el nivel superior).
 - `src/ui/stock.ts`: contador «9 / 11 prendas en percha» (colgadas / perchas) de la barra superior, alimentado por
   `RackHero` (`onStock`). Al cambiar, el número rueda y flota un «−1»/«+1».
 - `src/ui/topbar.ts`: la cabecera es fija en todas las páginas (`position: fixed`, alto `--header-h`); al hacer
@@ -82,6 +83,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - `src/garments.ts`: catálogo ficticio con `id` y `price` (€) (`garments` = portada, `lookGarments` = prendas de los looks;
   `byId(id)` busca en ambos).
 - `src/looks.ts`: looks (foto, texto y prendas con posición del punto en % sobre la foto).
+- `public/favicon.ico`, `favicon-32.png`, `apple-touch-icon.png` (e `icon-512.png`, el original): la percha 3D de la web
+  (`createHanger`, engrosada para leerse en pequeño) renderizada con three.js sobre un cuadrado crema redondeado.
 - `public/looks/`: fotos de los looks (`look-01.jpg`, aportada por el usuario). Si falta, se ve el `*-placeholder.svg`.
   Las prendas 3D del look se recrean a mano a partir de la foto (colores, tejidos y detalles).
 
