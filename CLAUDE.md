@@ -97,7 +97,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   (`track`), la que pasa por su sitio gira de frente y al soltar encaja en la más cercana con inercia (`FLICK`);
   flechas y teclado también deslizan. Sin hover en este modo. Empieza por la primera prenda colgada; contador y
   flechas van encima de la ficha (`.rack.is-carousel`). En carrusel, el bloque (contador de prendas, lienzo, flechas y ficha) se centra en vertical
-  en la pantalla (`--shift`) con sus espacios fijos: lienzo más
+  en la pantalla (`--shift`) con sus espacios fijos y siempre cabe en `100dvh` (el lienzo se acorta en pantallas bajas
+  y la cámara abre el encuadre para que las prendas se vean enteras, `CAROUSEL.depth`): lienzo más
   bajo (`--stage-h`, va con el ancho) a `--stage-top` de la cabecera, sin pared ni fondo (solo sombras, fundidas abajo con una
   máscara) y con el raíl arriba (`CAROUSEL.top`); debajo, contador y flechas y la ficha, en flujo. El contador «9 / 11 prendas en percha» (oculto en la barra
   en móvil) va encima del perchero, centrado. El relleno de las

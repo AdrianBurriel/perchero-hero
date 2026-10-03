@@ -406,12 +406,18 @@ button { font: inherit; color: inherit; }
    fundidas abajo— con el raíl arriba, contador y flechas y la ficha) centrado en vertical en la
    pantalla. --shift lo baja desde su sitio mínimo (contador a 80 px, bajo la cabecera) hasta centrarlo. */
 .hero:has(> .hero__rack.is-carousel) {
-  --stage-h: calc(100vw * 1.08); /* el ancho de raíl visible es fijo: la altura va con el ancho */
+  /* Alto del lienzo: va con el ancho (el ancho de raíl visible es fijo), pero nunca más de lo que
+     cabe en la pantalla visible (100dvh) junto a cabecera, contador, flechas y ficha (292px) */
+  --screen-h: 100svh;
+  --stage-h: min(100vw * 1.08, var(--screen-h) - 292px);
   --block-h: calc(var(--stage-h) + 188px); /* del contador de prendas al final de la ficha */
-  --shift: max(0px, (100svh - var(--block-h)) / 2 - 80px);
+  --shift: max(0px, (var(--screen-h) - var(--block-h)) / 2 - 80px);
   height: auto;
-  min-height: 100svh;
+  min-height: var(--screen-h);
   overflow: visible;
+}
+@supports (height: 100dvh) {
+  .hero:has(> .hero__rack.is-carousel) { --screen-h: 100dvh; }
 }
 .hero .hero__rack.is-carousel {
   --stage-top: calc(104px + var(--shift)); /* aire entre la cabecera y el raíl */
@@ -436,6 +442,12 @@ button { font: inherit; color: inherit; }
   top: calc(80px + var(--shift));
   white-space: nowrap;
   transform: translateX(-50%); /* hijo de la rejilla de la barra: se centra con transform */
+}
+@media (max-width: 360px) {
+  /* Móviles muy estrechos: la fila de botones cabe sin tocar los bordes */
+  .rack__info-actions { gap: 14px; }
+  .rack__info .card__add { padding: 0 12px; letter-spacing: 0.06em; }
+  .rack__info .card__cta { letter-spacing: 0.06em; }
 }
 @media (max-width: 640px) {
   .rack__info-name { font-size: 21px; }
@@ -577,6 +589,7 @@ button { font: inherit; color: inherit; }
   position: absolute;
   width: 1px;
   height: 1px;
+  margin: -1px; /* no ocupa sitio: evitaba 1 px de scroll al final de la página */
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;

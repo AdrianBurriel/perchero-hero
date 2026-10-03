@@ -144,9 +144,10 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
     rail.material = blackSteel;
   }
 
-  // Encuadre del carrusel: ancho visible (m), x del centro de la vista y margen sobre el raíl (m);
-  // null = perchero entero
-  let carousel: { view: number; centerX: number; top: number } | null = null;
+  // Encuadre del carrusel: ancho visible (m), dónde queda x = 0 (fracción desde la izquierda), margen
+  // sobre el raíl y alto mínimo bajo él (m) para que las prendas se vean enteras; null = perchero entero
+  type Carousel = { view: number; anchor: number; top: number; depth: number };
+  let carousel: Carousel | null = null;
   let size = { width: 1, height: 1 };
 
   /** Encaja el perchero entero en el lienzo, sea cual sea la proporción (o, en carrusel, `view` metros de raíl). */
@@ -156,11 +157,14 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
     camera.aspect = width / height;
     const t = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
     if (carousel) {
-      // Ancho fijo de raíl y el raíl arriba del todo, a `top` del borde superior
-      const dist = carousel.view / 2 / (t * camera.aspect);
-      const cy = -(carousel.view / camera.aspect / 2 - carousel.top);
-      camera.position.set(carousel.centerX, cy, dist);
-      camera.lookAt(carousel.centerX, cy, 0);
+      // Ancho de raíl fijo y el raíl arriba, a `top` del borde superior; si el lienzo es bajo
+      // (pantallas cortas) se abre el ancho para que quepan las prendas enteras
+      const view = Math.max(carousel.view, (carousel.top + carousel.depth) * camera.aspect);
+      const dist = view / 2 / (t * camera.aspect);
+      const cy = -(view / camera.aspect / 2 - carousel.top);
+      const cx = (0.5 - carousel.anchor) * view; // x = 0 queda a `anchor` del borde izquierdo
+      camera.position.set(cx, cy, dist);
+      camera.lookAt(cx, cy, 0);
     } else {
       const halfW = railHalf + 0.1;
       const dist = Math.max(frame.half / t, halfW / (t * camera.aspect));
@@ -170,8 +174,8 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
     camera.updateProjectionMatrix();
   }
 
-  /** Modo carrusel: raíl de lado a lado y `view` metros visibles centrados en `centerX`; null = perchero entero. */
-  function setCarousel(c: { view: number; centerX: number; top: number } | null) {
+  /** Modo carrusel: raíl de lado a lado y unos `view` metros visibles; null = perchero entero. */
+  function setCarousel(c: Carousel | null) {
     carousel = c;
     rack.visible = !c;
     longRail.visible = !!c;
