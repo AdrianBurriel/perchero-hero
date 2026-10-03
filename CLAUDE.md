@@ -50,6 +50,7 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   y `toast()` para acciones simuladas (ver ficha, comprar el look).
 - `src/ui/cart.ts`: cesta simulada (icono con contador en la barra superior + panel lateral), en
   localStorage para compartirla entre páginas. `mountCart(slot)`, `cartTarget()`, `addToCart(prenda)`.
+  Si al devolver prendas al perchero la cesta se queda vacía, el panel se cierra solo (animado, `CLOSE_EMPTY_MS`).
 - `src/ui/flyer.ts`: plegado y vuelo a la cesta en una capa WebGL transparente a pantalla completa
   (cámara ortográfica en px). La prenda real sale del perchero, pliega las mangas (piezas marcadas con
   `Kit.sleeve`) y la mitad inferior (deformación en el vertex shader) y vuela en arco. `RackHero.sendToCart(i, destino)` la lanza y deja la percha vacía;

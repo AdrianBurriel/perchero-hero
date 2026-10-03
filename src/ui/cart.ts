@@ -93,11 +93,17 @@ export function clearCart() {
 /** Saca una prenda de la cesta (vuelve a su percha a través de onCartRemove). */
 export const removeFromCart = (id: string) => remove(id);
 
+const CLOSE_EMPTY_MS = 450; // con la cesta vacía, el panel se cierra solo tras ver irse la última línea
+let closeTimer = 0;
+
 function remove(id: string) {
   lines = lines.filter((l) => l.id !== id);
   save(lines);
   render();
   removeListeners.forEach((fn) => fn(id));
+  // Todo devuelto al perchero: el panel se cierra solo (con su animación de salida)
+  clearTimeout(closeTimer);
+  if (!lines.length && !drawer.hidden) closeTimer = window.setTimeout(() => !lines.length && close(), CLOSE_EMPTY_MS);
 }
 
 function open() {

@@ -409,8 +409,8 @@ button { font: inherit; color: inherit; }
   /* Alto del lienzo: va con el ancho (el ancho de raíl visible es fijo), pero nunca más de lo que
      cabe en la pantalla visible (100dvh) junto a cabecera, contador, flechas y ficha */
   --screen-h: 100svh;
-  --crumb-top: calc(var(--header-h) - 2px);  /* contador de prendas, justo bajo la cabecera */
-  --stage-h: min(100vw * 1.08, var(--screen-h) - var(--header-h) - 210px);
+  --crumb-top: calc(var(--header-h) + 14px); /* contador de prendas, con aire bajo la cabecera */
+  --stage-h: min(100vw * 1.08, var(--screen-h) - var(--header-h) - 226px);
   --block-h: calc(var(--stage-h) + 188px); /* del contador de prendas al final de la ficha */
   --shift: max(0px, (var(--screen-h) - var(--block-h)) / 2 - var(--crumb-top));
   height: auto;
@@ -421,7 +421,7 @@ button { font: inherit; color: inherit; }
   .hero:has(> .hero__rack.is-carousel) { --screen-h: 100dvh; }
 }
 .hero .hero__rack.is-carousel {
-  --stage-top: calc(var(--header-h) + 22px + var(--shift)); /* aire entre la cabecera y el raíl */
+  --stage-top: calc(var(--header-h) + 38px + var(--shift)); /* el raíl, a la misma distancia del contador */
   position: relative;
   inset: auto;
   height: calc(var(--stage-top) + var(--stage-h) + 172px);
