@@ -25,7 +25,7 @@ const RESTOCK = 0.7;      // s que tarda una prenda devuelta en volver a colgars
 // Carrusel (opción `carousel`, en lienzos estrechos): raíl de lado a lado, se ven unas 3–4 prendas
 // con una cortada y se arrastra para pasarlas. La activa queda a `anchor` del borde izquierdo.
 const CAROUSEL_MAX_W = 700; // px de ancho del lienzo por debajo de los cuales se activa
-const CAROUSEL = { spacing: 0.2, push: 0.2, side: 62, view: 1.25, anchor: 0.36 };
+const CAROUSEL = { spacing: 0.2, push: 0.2, side: 62, view: 1.25, anchor: 0.36, top: 0.06 }; // top: aire sobre el raíl (m)
 const TRACK_STIFF = 70;   // muelle del desplazamiento por el raíl al soltar o cambiar de prenda
 const TRACK_DAMP = 16.7;  // 2·√TRACK_STIFF: llega sin rebote
 const DRAG_SLOP = 6;      // px antes de considerar que es un arrastre y no un toque
@@ -193,7 +193,7 @@ export class RackHero {
     this.push = on ? CAROUSEL.push : this.basePush;
     this.sideRad = THREE.MathUtils.degToRad(on ? CAROUSEL.side : SIDE_ANGLE);
     // La cámara se corre a la derecha: la activa queda a `anchor` del borde izquierdo
-    this.stage.setCarousel(on ? { view: CAROUSEL.view, centerX: (0.5 - CAROUSEL.anchor) * CAROUSEL.view } : null);
+    this.stage.setCarousel(on ? { view: CAROUSEL.view, centerX: (0.5 - CAROUSEL.anchor) * CAROUSEL.view, top: CAROUSEL.top } : null);
     this.hovered = null;
     this.drag = null;
     if (on) this.select(0, 1); // el carrusel empieza por la primera prenda colgada

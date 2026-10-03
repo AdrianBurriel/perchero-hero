@@ -47,7 +47,8 @@ function plasterPlane(w: number, h: number, color: string) {
 }
 
 export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transparent = false }: StageOptions) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: transparent });
+  // Siempre con alfa: el carrusel (móvil) quita la pared y deja ver el fondo de la página
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.95;
@@ -55,7 +56,8 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
   renderer.shadowMap.type = THREE.PCFShadowMap;
 
   const scene = new THREE.Scene();
-  if (!transparent) scene.background = new THREE.Color('#d6d0c4');
+  const background = transparent ? null : new THREE.Color('#d6d0c4');
+  scene.background = background;
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.45;
@@ -81,9 +83,9 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
   scene.add(fill);
 
   // Pared grande: cubre el fondo también en pantallas estrechas (cámara lejos)
-  const wall = transparent
-    ? new THREE.Mesh(new THREE.PlaneGeometry(40, 24), new THREE.ShadowMaterial({ opacity: 0.16 }))
-    : plasterPlane(40, 24, '#d9d3c7');
+  const shadowOnly = new THREE.ShadowMaterial({ opacity: 0.16 });
+  const wall = transparent ? new THREE.Mesh(new THREE.PlaneGeometry(40, 24), shadowOnly) : plasterPlane(40, 24, '#d9d3c7');
+  const wallMaterial = wall.material;
   wall.receiveShadow = true;
   wall.position.set(0, -0.6, wallZ);
   scene.add(wall);
@@ -142,8 +144,9 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
     rail.material = blackSteel;
   }
 
-  // Encuadre del carrusel: ancho visible (m) y x del centro de la vista; null = perchero entero
-  let carousel: { view: number; centerX: number } | null = null;
+  // Encuadre del carrusel: ancho visible (m), x del centro de la vista y margen sobre el raíl (m);
+  // null = perchero entero
+  let carousel: { view: number; centerX: number; top: number } | null = null;
   let size = { width: 1, height: 1 };
 
   /** Encaja el perchero entero en el lienzo, sea cual sea la proporción (o, en carrusel, `view` metros de raíl). */
@@ -152,19 +155,29 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     const t = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-    const halfW = carousel ? carousel.view / 2 : railHalf + 0.1;
-    const dist = Math.max(frame.half / t, halfW / (t * camera.aspect));
-    const x = carousel?.centerX ?? 0;
-    camera.position.set(x, frame.y + 0.12, dist);
-    camera.lookAt(x, frame.y, 0);
+    if (carousel) {
+      // Ancho fijo de raíl y el raíl arriba del todo, a `top` del borde superior
+      const dist = carousel.view / 2 / (t * camera.aspect);
+      const cy = -(carousel.view / camera.aspect / 2 - carousel.top);
+      camera.position.set(carousel.centerX, cy, dist);
+      camera.lookAt(carousel.centerX, cy, 0);
+    } else {
+      const halfW = railHalf + 0.1;
+      const dist = Math.max(frame.half / t, halfW / (t * camera.aspect));
+      camera.position.set(0, frame.y + 0.12, dist);
+      camera.lookAt(0, frame.y, 0);
+    }
     camera.updateProjectionMatrix();
   }
 
   /** Modo carrusel: raíl de lado a lado y `view` metros visibles centrados en `centerX`; null = perchero entero. */
-  function setCarousel(c: { view: number; centerX: number } | null) {
+  function setCarousel(c: { view: number; centerX: number; top: number } | null) {
     carousel = c;
     rack.visible = !c;
     longRail.visible = !!c;
+    // Sin pared ni fondo: solo las sombras sobre el fondo de la página (el lienzo puede ser más bajo sin que se note)
+    scene.background = c ? null : background;
+    wall.material = c ? shadowOnly : wallMaterial;
     resize(size.width, size.height);
   }
 

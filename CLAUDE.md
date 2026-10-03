@@ -94,7 +94,10 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   prendas con una cortada; la activa queda a `anchor` del borde izquierdo. Arrastrar desliza las prendas por el raíl
   (`track`), la que pasa por su sitio gira de frente y al soltar encaja en la más cercana con inercia (`FLICK`);
   flechas y teclado también deslizan. Sin hover en este modo. Empieza por la primera prenda colgada; contador y
-  flechas van encima de la ficha (`.rack.is-carousel`).
+  flechas van encima de la ficha (`.rack.is-carousel`). En carrusel la portada no ocupa toda la pantalla: lienzo más
+  bajo (`--stage-h`, va con el ancho) bajo la cabecera, sin pared ni fondo (solo sombras, fundidas abajo con una
+  máscara) y con el raíl arriba (`CAROUSEL.top`); debajo, contador y flechas y la ficha, en flujo. El relleno de las
+  flechas al pasar por encima es solo con ratón (`@media (hover: hover)`).
 - Paso fijo de 1/120 s con acumulador. Parámetros al inicio de `src/rack/RackHero.ts`.
 - El péndulo con viento y retraso de tela existió en commits anteriores (ver historial de git).
 
