@@ -397,7 +397,7 @@ button { font: inherit; color: inherit; }
   --stage-h: calc(100vw * 1.08); /* el ancho de raíl visible es fijo: la altura va con el ancho */
   position: relative;
   inset: auto;
-  height: calc(var(--stage-top) + var(--stage-h) + 150px);
+  height: calc(var(--stage-top) + var(--stage-h) + 172px);
 }
 .rack.is-carousel .rack__stage {
   top: var(--stage-top); /* bajo la cabecera */
@@ -407,7 +407,14 @@ button { font: inherit; color: inherit; }
   mask-image: linear-gradient(to bottom, #000 84%, transparent);
 }
 .rack.is-carousel .rack__nav { top: calc(var(--stage-top) + var(--stage-h) + 6px); bottom: auto; right: 50%; transform: translateX(50%); }
-.rack.is-carousel .rack__info { top: calc(var(--stage-top) + var(--stage-h) + 66px); bottom: auto; }
+.rack.is-carousel .rack__info { top: calc(var(--stage-top) + var(--stage-h) + 88px); bottom: auto; }
+/* El contador de prendas en percha (oculto en móvil en la barra) vuelve encima del perchero */
+.hero:has(> .hero__rack.is-carousel) .topbar__crumb {
+  display: block;
+  position: absolute;
+  left: var(--gutter);
+  top: 80px;
+}
 @media (max-width: 640px) {
   .rack__info-name { font-size: 21px; }
   .rack__info .card__add { height: 40px; }
