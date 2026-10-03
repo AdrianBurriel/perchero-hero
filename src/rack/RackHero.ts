@@ -421,11 +421,14 @@ export class RackHero {
     this.stage.renderer.render(this.stage.scene, this.stage.camera);
   }
 
-  /** Ficha fija: datos de la seleccionada (se refresca solo al cambiar, con un fundido corto). */
+  /** Ficha fija: datos de la seleccionada (se refresca solo al cambiar, con una entrada escalonada). */
   private fillInfo() {
     const info = this.el.info;
     const it = this.items[this.selected];
     if (!info || !it || it.gone || this.lastInfo === this.selected) return;
+    // Sentido del slide: el texto entra desde el lado hacia el que se avanza (0 = sin desplazamiento)
+    const dir = this.lastInfo < 0 ? 0 : Math.sign(this.selected - this.lastInfo);
+    info.style.setProperty('--dir', String(dir));
     this.lastInfo = this.selected;
     const set = (sel: string, text: string) => (info.querySelector<HTMLElement>(sel)!.textContent = text);
     set('.rack__info-brand', it.data.brand);
@@ -434,7 +437,7 @@ export class RackHero {
     info.querySelector<HTMLElement>('.card__cta')!.dataset.product = it.data.name;
     info.querySelector<HTMLElement>('.card__add')!.setAttribute('aria-label', `Añadir a la cesta: ${it.data.name}`);
     info.classList.remove('is-swap');
-    void info.offsetWidth; // reinicia el fundido
+    void info.offsetWidth; // reinicia la entrada
     info.classList.add('is-swap');
   }
 
