@@ -305,6 +305,8 @@ button { font: inherit; color: inherit; }
   transition: background 0.25s var(--ease), color 0.25s var(--ease);
 }
 .rack__refill[hidden], .rack__more[hidden] { display: none; }
+/* «Ver otros percheros»: botón como el resto (esquinas rectas), no píldora */
+.rack__more { border-radius: 2px; }
 .rack__refill svg, .rack__more svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.5s var(--ease); }
 .rack__refill:hover, .rack__more:hover { background: var(--ink); color: var(--paper); }
 .rack__more:hover svg { transform: translateX(3px); }
