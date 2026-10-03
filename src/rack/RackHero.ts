@@ -23,10 +23,10 @@ const RAIL_MARGIN = 0.24; // raíl sobrante a cada lado de la última prenda apa
 const RESTOCK = 0.7;      // s que tarda una prenda devuelta en volver a colgarse (se desenrolla desde el gancho)
 
 // Carrusel (opción `carousel`, en lienzos estrechos): raíl de lado a lado, se ven unas 3–4 prendas
-// con una cortada y se arrastra para pasarlas. La activa queda a `anchor` del borde izquierdo.
+// con una cortada y se arrastra para pasarlas. La activa queda a `anchor` del borde izquierdo (0,5 = centrada).
 const CAROUSEL_MAX_W = 700; // px de ancho del lienzo por debajo de los cuales se activa
 // top: aire sobre el raíl (m); depth: alto bajo el raíl que debe verse entero (prendas y algo de sombra)
-const CAROUSEL = { spacing: 0.2, push: 0.2, side: 62, view: 1.25, anchor: 0.36, top: 0.06, depth: 0.88 };
+const CAROUSEL = { spacing: 0.2, push: 0.2, side: 62, view: 1.25, anchor: 0.5, top: 0.06, depth: 0.88 };
 const TRACK_STIFF = 70;   // muelle del desplazamiento por el raíl al soltar o cambiar de prenda
 const TRACK_DAMP = 16.7;  // 2·√TRACK_STIFF: llega sin rebote
 const DRAG_SLOP = 6;      // px antes de considerar que es un arrastre y no un toque

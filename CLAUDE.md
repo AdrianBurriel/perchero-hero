@@ -98,7 +98,7 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - La cámara encaja siempre el perchero entero (raíl y soportes, `RAIL_HALF`), salvo en carrusel.
 - Carrusel (opción `carousel`, solo en la portada, lienzo de menos de `CAROUSEL_MAX_W` = 700 px): raíl de lado a lado
   sin brazos ni topes (`stage.setCarousel`), más separación y prendas menos de canto (`CAROUSEL`). Se ven unas 3–4
-  prendas con una cortada; la activa queda a `anchor` del borde izquierdo. Arrastrar desliza las prendas por el raíl
+  prendas con una cortada; la activa queda centrada en horizontal (`anchor` 0,5). Arrastrar desliza las prendas por el raíl
   (`track`), la que pasa por su sitio gira de frente y al soltar encaja en la más cercana con inercia (`FLICK`);
   flechas y teclado también deslizan. Sin hover en este modo. Empieza por la primera prenda colgada; contador y
   flechas van encima de la ficha (`.rack.is-carousel`). En carrusel, el bloque (contador de prendas, lienzo, flechas y ficha) se centra en vertical
