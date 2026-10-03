@@ -2,12 +2,14 @@ import './style.css';
 import { garments } from './garments';
 import { RackHero } from './rack/RackHero';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove, removeFromCart } from './ui/cart';
+import { mountTopbar } from './ui/topbar';
 import { mountSwitch } from './ui/switcher';
 import { mountStock } from './ui/stock';
 import { startLoader } from './ui/loader';
 
 const loader = startLoader();
 
+mountTopbar(document.querySelector<HTMLElement>('.topbar')!);
 mountSwitch(document.querySelector<HTMLElement>('.switch')!);
 mountCart(document.querySelector<HTMLElement>('#cart-slot')!);
 

@@ -5,6 +5,7 @@ import { looks } from './looks';
 import { RackHero } from './rack/RackHero';
 import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove, removeFromCart } from './ui/cart';
+import { mountTopbar } from './ui/topbar';
 import { mountSwitch, leaveSection } from './ui/switcher';
 import { mountStock } from './ui/stock';
 import { startLoader } from './ui/loader';
@@ -14,6 +15,7 @@ const loader = startLoader();
 /* Shop the look: foto del modelo con puntos sobre cada prenda + perchero con esas prendas.
    Puntos, perchero y detalle comparten la prenda activa. */
 
+mountTopbar($('.topbar'));
 mountSwitch($('.switch'));
 mountCart($('#cart-slot'));
 

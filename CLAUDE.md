@@ -74,6 +74,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   descubriendo la página de abajo arriba. Nunca dura menos de `MIN_MS` (2 s). Necesita `build.target: 'es2022'` (await en el nivel superior).
 - `src/ui/stock.ts`: contador «9 / 11 prendas en percha» (colgadas / perchas) de la barra superior, alimentado por
   `RackHero` (`onStock`). Al cambiar, el número rueda y flota un «−1»/«+1».
+- `src/ui/topbar.ts`: la cabecera es fija en todas las páginas (`position: fixed`, alto `--header-h`); al hacer
+  scroll toma fondo translúcido (`.is-scrolled`). Shop the look reserva su alto arriba.
 - `src/style.css`: sistema visual común. Tipografías Instrument Serif (títulos) e Inter (texto) desde Google Fonts.
 - `src/garments.ts`: catálogo ficticio con `id` y `price` (€) (`garments` = portada, `lookGarments` = prendas de los looks;
   `byId(id)` busca en ambos).
@@ -94,7 +96,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   prendas con una cortada; la activa queda a `anchor` del borde izquierdo. Arrastrar desliza las prendas por el raíl
   (`track`), la que pasa por su sitio gira de frente y al soltar encaja en la más cercana con inercia (`FLICK`);
   flechas y teclado también deslizan. Sin hover en este modo. Empieza por la primera prenda colgada; contador y
-  flechas van encima de la ficha (`.rack.is-carousel`). En carrusel la portada no ocupa toda la pantalla: lienzo más
+  flechas van encima de la ficha (`.rack.is-carousel`). En carrusel, el bloque (contador de prendas, lienzo, flechas y ficha) se centra en vertical
+  en la pantalla (`--shift`) con sus espacios fijos: lienzo más
   bajo (`--stage-h`, va con el ancho) a `--stage-top` de la cabecera, sin pared ni fondo (solo sombras, fundidas abajo con una
   máscara) y con el raíl arriba (`CAROUSEL.top`); debajo, contador y flechas y la ficha, en flujo. El contador «9 / 11 prendas en percha» (oculto en la barra
   en móvil) va encima del perchero, centrado. El relleno de las
