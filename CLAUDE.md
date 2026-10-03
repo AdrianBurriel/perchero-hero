@@ -27,6 +27,10 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   El detalle va en la parte baja de la foto, abierto desde el inicio, y sigue a la prenda activa
   (`RackHero` con `onOpen`: la página muestra el detalle en lugar del perchero).
   Encuadre de la foto con `focus` en `src/looks.ts` (punto centrado y zoom; foto y puntos se amplían juntos).
+  En móvil (perchero en carrusel) la página cabe en `100dvh` y se parece a la portada: título y «Comprar el look»
+  arriba, el mismo carrusel (`carousel: true`) y la ficha fija de la portada (`info: 'carousel'`) con la foto del look
+  en miniatura (`thumb`); sin foto grande, puntos ni tarjeta de detalle. El perchero mide como el de la portada y se
+  encoge si no cabe; el bloque se centra en vertical. En escritorio no cambia.
 - Multipágina declarada en `vite.config.ts` (`build.rollupOptions.input`).
 
 ## Estructura
@@ -97,7 +101,7 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   (las perchas no se desplazan para centrarla). En Shop the look hover y foco previsualizan otra prenda;
   en la portada la seleccionan.
 - La cámara encaja siempre el perchero entero (raíl y soportes, `RAIL_HALF`), salvo en carrusel.
-- Carrusel (opción `carousel`, solo en la portada, lienzo de menos de `CAROUSEL_MAX_W` = 700 px): raíl de lado a lado
+- Carrusel (opción `carousel`, en la portada y en Shop the look, lienzo de menos de `CAROUSEL_MAX_W` = 700 px): raíl de lado a lado
   sin brazos ni topes (`stage.setCarousel`), más separación y prendas menos de canto (`CAROUSEL`). Se ven unas 3–4
   prendas con una cortada; la activa queda centrada en horizontal (`anchor` 0,5). Arrastrar desliza las prendas por el raíl
   (`track`), la que pasa por su sitio gira de frente y al soltar encaja en la más cercana con inercia (`FLICK`);

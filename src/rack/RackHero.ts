@@ -46,6 +46,10 @@ export interface RackOptions {
   onStock?: (hanging: number, total: number) => void; // colgadas / perchas (al empezar y cada vez que cambia)
   onRefill?: () => void; // botón «Rellenar perchero» (aparece cuando no queda ninguna colgada)
   carousel?: boolean;    // en pantallas estrechas, carrusel de lado a lado con arrastre
+  // Ficha fija bajo el perchero: 'always' (por defecto sin onOpen) o solo en carrusel ('carousel',
+  // p. ej. Shop the look en móvil, donde sustituye al detalle de la página)
+  info?: 'always' | 'carousel';
+  thumb?: { src: string; alt: string }; // miniatura a la izquierda de la ficha (la foto del look)
 }
 
 interface Item {
@@ -140,10 +144,19 @@ export class RackHero {
     container.insertAdjacentHTML('beforeend', TEMPLATE);
     const q = <T extends Element>(s: string) => container.querySelector<T>(s)!;
     let info: HTMLElement | null = null;
-    if (!opts.onOpen) {
+    const infoMode = opts.info ?? (opts.onOpen ? null : 'always');
+    if (infoMode) {
       container.insertAdjacentHTML('beforeend', INFO);
-      container.classList.add('has-info');
+      container.classList.add(infoMode === 'always' ? 'has-info' : 'has-info-carousel');
       info = q<HTMLElement>('.rack__info');
+      if (opts.thumb) {
+        const img = document.createElement('img');
+        img.className = 'rack__info-thumb';
+        img.src = opts.thumb.src;
+        img.alt = opts.thumb.alt;
+        info.prepend(img);
+        info.classList.add('has-thumb');
+      }
       bindCardCta(info, () => this.opts.onAddToCart?.(this.selected));
     }
     this.el = {
@@ -205,6 +218,11 @@ export class RackHero {
     this.step(0, true);
   }
 
+  /** ¿Se ve la ficha fija? (siempre, o en carrusel si es de tipo 'carousel'): entonces manda sobre `onOpen`. */
+  private get infoVisible() {
+    return !!this.el.info && (this.container.classList.contains('has-info') || this.carousel);
+  }
+
   /** Prenda (índice) cuyo sitio en el raíl queda más cerca de `x`. */
   private closest(x: number) {
     let best = 0;
@@ -245,7 +263,7 @@ export class RackHero {
   /** Enter sobre una prenda: el detalle de la página o, con ficha fija, su botón de añadir. */
   openDetail(i: number) {
     if (!this.items[i]) return;
-    if (this.opts.onOpen) return this.opts.onOpen(i);
+    if (this.opts.onOpen && !this.infoVisible) return this.opts.onOpen(i);
     this.select(i);
     this.el.info?.querySelector<HTMLElement>('.card__add')!.focus();
   }
@@ -449,7 +467,7 @@ export class RackHero {
         this.lastHitAt = now;
         // Con ficha fija, pasar por encima selecciona: al salir hacia la ficha se queda esa prenda
         const i = this.items.indexOf(item);
-        if (this.el.info && i !== this.selected) this.select(i);
+        if (this.el.info && !this.opts.onOpen && i !== this.selected) this.select(i);
       } else if (now - this.lastHitAt > HOVER_GRACE) {
         this.hovered = null;
       }
@@ -462,7 +480,7 @@ export class RackHero {
       if (!item) return;
       const i = this.items.indexOf(item);
       this.select(i);
-      if (this.opts.onOpen) this.opts.onOpen(i);
+      if (this.opts.onOpen && !this.infoVisible) this.opts.onOpen(i);
     });
   }
 
@@ -528,7 +546,7 @@ export class RackHero {
 
   /** Nombre de la prenda activa bajo el perchero (sin ficha fija): misma persiana que la ficha. */
   private fillCaption(index: number) {
-    if (this.el.info || index < 0 || index === this.lastCaption) return;
+    if (this.container.classList.contains('has-info') || index < 0 || index === this.lastCaption) return;
     const caption = this.el.captionName.parentElement!;
     caption.style.setProperty('--swap-dir', index < this.lastCaption ? '-1' : '1');
     this.lastCaption = index;

@@ -134,6 +134,12 @@ await loader.intro;
 const rack = new RackHero($('#look-rack'), garments, {
   mount: 'wall', // mismo perchero que la portada
   transparent: true,
+  // En móvil: el mismo carrusel que la portada, con su ficha fija y la foto del look en miniatura
+  // (sustituyen a la foto grande, los puntos y la tarjeta de detalle)
+  carousel: true,
+  info: 'carousel',
+  thumb: { src: look.image, alt: look.alt },
+  onAddToCart: (i) => send(i),
   spacing: 0.16,
   push: 0.26,
   initial: 0,

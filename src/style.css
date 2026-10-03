@@ -426,15 +426,15 @@ button { font: inherit; color: inherit; }
   inset: auto;
   height: calc(var(--stage-top) + var(--stage-h) + 172px);
 }
-.rack.is-carousel .rack__stage {
+.hero__rack.is-carousel .rack__stage {
   top: var(--stage-top); /* bajo la cabecera */
   height: var(--stage-h);
   /* las sombras se funden abajo (las prendas acaban antes del fundido) */
   -webkit-mask-image: linear-gradient(to bottom, #000 84%, transparent);
   mask-image: linear-gradient(to bottom, #000 84%, transparent);
 }
-.rack.is-carousel .rack__nav { top: calc(var(--stage-top) + var(--stage-h) + 6px); bottom: auto; right: 50%; transform: translateX(50%); }
-.rack.is-carousel .rack__info { top: calc(var(--stage-top) + var(--stage-h) + 88px); bottom: auto; }
+.hero__rack.is-carousel .rack__nav { top: calc(var(--stage-top) + var(--stage-h) + 6px); bottom: auto; right: 50%; transform: translateX(50%); }
+.hero__rack.is-carousel .rack__info { top: calc(var(--stage-top) + var(--stage-h) + 88px); bottom: auto; }
 /* El contador de prendas en percha (oculto en móvil en la barra) vuelve encima del perchero */
 .hero:has(> .hero__rack.is-carousel) .topbar__crumb {
   display: block;
@@ -884,6 +884,81 @@ button { font: inherit; color: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Shop the look en móvil (perchero en carrusel) ----------
+   Todo cabe en la pantalla visible (100dvh): arriba el título y «Comprar el look»; en medio el
+   mismo carrusel que la portada; abajo contador y flechas y la ficha fija con la foto del look en
+   miniatura. Fuera la foto grande, los puntos y la tarjeta de detalle. */
+.rack.has-info-carousel:not(.is-carousel) .rack__info { display: none; }
+.rack.has-info-carousel.is-carousel .rack__caption { display: none; }
+.look:has(> .look__rack.is-carousel) {
+  --screen-h: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* como en la portada: el bloque, centrado en la pantalla */
+  gap: 14px;
+  height: calc(var(--screen-h) - var(--header-h));
+  min-height: 0;
+  padding: 10px var(--gutter) 16px;
+}
+@supports (height: 100dvh) {
+  .look:has(> .look__rack.is-carousel) { --screen-h: 100dvh; }
+}
+.look:has(> .look__rack.is-carousel) .look__photo,
+.look:has(> .look__rack.is-carousel) .look__subtitle { display: none; }
+.look:has(> .look__rack.is-carousel) .look__intro { gap: 12px; padding-bottom: 14px; }
+.look:has(> .look__rack.is-carousel) .look__title { margin-top: 6px; font-size: 30px; }
+/* El perchero va de lado a lado de la pantalla; mide como el de la portada y, si no cabe, se encoge */
+.look__rack.is-carousel {
+  --ui-h: 158px;  /* contador y flechas + ficha, bajo el lienzo */
+  --rail-gap: 16px; /* aire entre la línea del título y el raíl */
+  flex: 0 1 auto;
+  height: calc(var(--rail-gap) + 100vw * 1.08 + var(--ui-h));
+  min-height: 0;
+  margin: 0 calc(-1 * var(--gutter));
+}
+.look__rack.is-carousel .rack__stage {
+  top: var(--rail-gap);
+  height: calc(100% - var(--rail-gap) - var(--ui-h));
+  -webkit-mask-image: linear-gradient(to bottom, #000 84%, transparent);
+  -webkit-mask-composite: source-over;
+  mask-image: linear-gradient(to bottom, #000 84%, transparent);
+  mask-composite: add;
+}
+.look__rack.is-carousel .rack__nav { top: auto; bottom: 106px; right: 50%; transform: translateX(50%); }
+.look__rack.is-carousel .rack__info { top: auto; bottom: 0; left: var(--gutter); right: var(--gutter); }
+.look__rack.is-carousel .rack__more { bottom: 40px; }
+/* Ficha con miniatura: la foto a la izquierda; a su lado nombre, marca y precio, y debajo los botones */
+.rack__info.has-thumb {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 10px 14px;
+}
+.rack__info-thumb {
+  grid-row: 1 / span 2;
+  width: 62px;
+  height: 92px;
+  object-fit: cover;
+  object-position: 50% 30%;
+  border-radius: 2px;
+  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.45);
+}
+.rack__info.has-thumb .rack__info-text { flex-wrap: wrap; gap: 2px 8px; }
+.rack__info.has-thumb .rack__info-name { font-size: 20px; }
+.rack__info.has-thumb .rack__info-actions { grid-column: 2 / -1; justify-content: flex-start; gap: 14px; }
+.rack__info.has-thumb .rack__info-actions { gap: 12px; }
+.rack__info.has-thumb .card__add { height: 38px; padding: 0 10px; font-size: 11px; letter-spacing: 0.06em; }
+.rack__info.has-thumb .card__cta { font-size: 11px; letter-spacing: 0.04em; }
+@media (max-width: 360px) {
+  .rack__info.has-thumb { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 8px 12px; }
+  .rack__info-thumb { width: 52px; height: 80px; }
+  .rack__info.has-thumb .card__cta svg { display: none; }
+  .rack__info.has-thumb .rack__info-actions { gap: 10px; }
+  .rack__info.has-thumb .card__add { padding: 0 8px; font-size: 10.5px; letter-spacing: 0.03em; }
+  .rack__info.has-thumb .card__cta { font-size: 10.5px; letter-spacing: 0.02em; }
 }
 
 /* ---------- Pantalla de carga ---------- */
