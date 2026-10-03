@@ -1,10 +1,12 @@
 /* Cambios de texto animados para la ficha fija del perchero.
-   - swapText: persiana enmascarada. El texto anterior sale y el nuevo entra (por letras o en bloque);
+   - swapText: persiana enmascarada. Primero sale el texto anterior y después entra el nuevo (por letras
+     o en bloque), sin que se monten;
      el sentido lo da `--swap-dir` en un ancestro (1 = el nuevo entra por abajo, -1 = por arriba).
    - rollNumber: odómetro. Cada cifra rueda hasta su nuevo valor.
    Los lectores de pantalla leen el texto completo de un span oculto (.sr-only). */
 
-const OUT_MS = 650; // lo que tarda en irse el texto anterior (se quita del DOM al acabar)
+const OUT_MS = 300;  // se quita del DOM el texto anterior (su salida dura 0,26 s en el CSS)
+const WAIT_MS = 240; // el nuevo empieza a entrar cuando el anterior ya casi se ha ido
 
 /** Span .sr-only con el texto entero (lo crea la primera vez). */
 function spoken(el: HTMLElement, text: string) {
@@ -30,7 +32,8 @@ export function swapText(el: HTMLElement, text: string, { byChar = false, delay 
   const next = document.createElement('span');
   next.className = 'swap';
   next.setAttribute('aria-hidden', 'true');
-  next.style.setProperty('--delay', `${delay}ms`);
+  // Si hay texto saliendo, el nuevo espera a que se vaya: nunca se montan
+  next.style.setProperty('--delay', `${delay + (prev ? WAIT_MS : 0)}ms`);
   for (const [i, part] of (byChar ? [...text] : [text]).entries()) {
     const c = document.createElement('span');
     c.className = 'swap__c';

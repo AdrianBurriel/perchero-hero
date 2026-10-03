@@ -62,7 +62,7 @@ const TEMPLATE = `
     <button class="rack__arrow" data-dir="-1" type="button" aria-label="Prenda anterior">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6" /></svg>
     </button>
-    <button class="rack__arrow rack__arrow--ring" data-dir="1" type="button" aria-label="Prenda siguiente">
+    <button class="rack__arrow" data-dir="1" type="button" aria-label="Prenda siguiente">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6" /></svg>
     </button>
   </nav>

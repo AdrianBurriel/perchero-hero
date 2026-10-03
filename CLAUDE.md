@@ -36,7 +36,7 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   Portada (sin `onOpen`): bajo el perchero, siempre visible e integrada (sin caja, en el sitio del nombre), la ficha resumida de la prenda seleccionada
   (`.rack__info`: marca, nombre, precio, «Añadir a la cesta» y «Ver producto»), sin modal. Ahí pasar por encima
   de una prenda la selecciona (al bajar a la ficha se queda la última). En cada cambio (`src/ui/textSwap.ts`), el nombre
-  hace una persiana enmascarada letra a letra (`swapText`), la marca la misma en bloque y el precio rueda como un
+  hace una persiana enmascarada letra a letra (`swapText`: primero sale el anterior y luego entra el nuevo, sin montarse), la marca la misma en bloque y el precio rueda como un
   odómetro (`rollNumber`); hacia la izquierda el texto entra por arriba (`--swap-dir`). Los botones no se animan. El texto de ayuda va arriba, bajo el selector.
   Shop the look (`onOpen`) usa su propio detalle.
 - `src/stage.ts`: renderer, cámara, luces, pared, raíl de pared o burro (postes, base, ruedas, suelo) y percha.
