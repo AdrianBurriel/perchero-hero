@@ -3,6 +3,7 @@ import { garments } from './garments';
 import { RackHero } from './rack/RackHero';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove, removeFromCart } from './ui/cart';
 import { mountTopbar } from './ui/topbar';
+import { startSmoothScroll } from './ui/smoothScroll';
 import { mountSwitch } from './ui/switcher';
 import { mountStock } from './ui/stock';
 import { startLoader } from './ui/loader';
@@ -10,6 +11,7 @@ import { startLoader } from './ui/loader';
 const loader = startLoader();
 
 mountTopbar(document.querySelector<HTMLElement>('.topbar')!);
+startSmoothScroll();
 mountSwitch(document.querySelector<HTMLElement>('.switch')!);
 mountCart(document.querySelector<HTMLElement>('#cart-slot')!);
 

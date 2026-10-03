@@ -433,7 +433,7 @@ button { font: inherit; color: inherit; }
   -webkit-mask-image: linear-gradient(to bottom, #000 84%, transparent);
   mask-image: linear-gradient(to bottom, #000 84%, transparent);
 }
-.hero__rack.is-carousel .rack__nav { top: calc(var(--stage-top) + var(--stage-h) + 6px); bottom: auto; right: 50%; transform: translateX(50%); }
+.hero__rack.is-carousel .rack__nav { top: calc(var(--stage-top) + var(--stage-h) + 6px); bottom: auto; }
 .hero__rack.is-carousel .rack__info { top: calc(var(--stage-top) + var(--stage-h) + 88px); bottom: auto; }
 /* El contador de prendas en percha (oculto en móvil en la barra) vuelve encima del perchero */
 .hero:has(> .hero__rack.is-carousel) .topbar__crumb {
@@ -893,7 +893,6 @@ button { font: inherit; color: inherit; }
 .rack.has-info-carousel:not(.is-carousel) .rack__info { display: none; }
 .rack.has-info-carousel.is-carousel .rack__caption { display: none; }
 .look__shot, .look__morph { display: none; }
-html:has(.look__rack.is-carousel) { scroll-snap-type: y proximity; } /* se asienta arriba o en el perchero */
 .look:has(> .look__rack.is-carousel) {
   --screen-h: 100svh;
   display: flex;
@@ -902,8 +901,6 @@ html:has(.look__rack.is-carousel) { scroll-snap-type: y proximity; } /* se asien
   height: auto;
   min-height: 0;
   padding: 10px var(--gutter) 16px;
-  scroll-snap-align: start;
-  scroll-margin-top: var(--header-h);
 }
 @supports (height: 100dvh) {
   .look:has(> .look__rack.is-carousel) { --screen-h: 100dvh; }
@@ -939,8 +936,6 @@ body.has-look-morph .rack__info-thumb { visibility: hidden; } /* la que se ve es
   flex: none;
   height: calc(var(--screen-h) - var(--header-h) - var(--buy-h, 44px) - 14px - 26px);
   margin: 0 calc(-1 * var(--gutter));
-  scroll-snap-align: end;
-  scroll-margin-bottom: 16px;
 }
 .look__rack.is-carousel .rack__stage {
   top: var(--rail-gap);
@@ -950,7 +945,11 @@ body.has-look-morph .rack__info-thumb { visibility: hidden; } /* la que se ve es
   mask-image: linear-gradient(to bottom, #000 84%, transparent);
   mask-composite: add;
 }
-.look__rack.is-carousel .rack__nav { top: auto; bottom: 106px; right: 50%; transform: translateX(50%); }
+.look__rack.is-carousel .rack__nav { top: auto; bottom: 106px; }
+/* Carrusel: contador y flechas a todo el ancho, las flechas a los lados (no tapan la prenda centrada) */
+.rack.is-carousel nav.rack__nav { left: var(--gutter); right: var(--gutter); justify-content: space-between; transform: none; }
+.rack.is-carousel .rack__arrow[data-dir="-1"] { order: -1; }
+.rack.is-carousel .rack__arrow[data-dir="1"] { order: 1; }
 .look__rack.is-carousel .rack__info { top: auto; bottom: 0; left: var(--gutter); right: var(--gutter); }
 .look__rack.is-carousel .rack__more { bottom: 40px; }
 /* Ficha con miniatura: la foto a la izquierda; a su lado nombre, marca y precio, y debajo los botones */
@@ -1020,3 +1019,8 @@ body.has-look-morph .rack__info-thumb { visibility: hidden; } /* la que se ve es
   .loader { transition: opacity 0.3s, visibility 0s linear 0.3s; }
   .loader.is-out { transform: none; opacity: 0; }
 }
+
+/* ---------- Lenis (scroll suave, src/ui/smoothScroll.ts) ---------- */
+html.lenis, html.lenis body { height: auto; }
+.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
+.lenis.lenis-smooth iframe { pointer-events: none; }

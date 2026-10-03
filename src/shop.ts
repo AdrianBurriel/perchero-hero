@@ -6,6 +6,7 @@ import { RackHero } from './rack/RackHero';
 import { cardHTML, fillCard, bindCardCta, formatPrice } from './ui/productCard';
 import { mountCart, cartTarget, addToCart, inCart, onCartRemove, removeFromCart } from './ui/cart';
 import { mountTopbar } from './ui/topbar';
+import { startSmoothScroll } from './ui/smoothScroll';
 import { mountSwitch, leaveSection } from './ui/switcher';
 import { mountStock } from './ui/stock';
 import { startLoader } from './ui/loader';
@@ -17,6 +18,7 @@ const loader = startLoader();
    Puntos, perchero y detalle comparten la prenda activa. */
 
 mountTopbar($('.topbar'));
+const smooth = startSmoothScroll();
 mountSwitch($('.switch'));
 mountCart($('#cart-slot'));
 
@@ -173,6 +175,7 @@ mountLookMorph({
   thumb: () => document.querySelector<HTMLElement>('#look-rack .rack__info-thumb'),
   src: look.image,
   alt: look.alt,
+  lenis: smooth,
 });
 // Quitar de la cesta la devuelve a su percha
 onCartRemove((id) => {

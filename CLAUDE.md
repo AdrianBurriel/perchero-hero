@@ -32,7 +32,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   miniatura (`thumb`); sin puntos ni tarjeta de detalle. Al bajar, la foto grande se convierte en la miniatura
   (`src/ui/lookMorph.ts`: una copia fija interpola posición y tamaño según el scroll); al final, fila de compra +
   perchero llenan la pantalla (100dvh; el perchero mide lo que deja `--buy-h`). Al subir vuelve; tocarla lleva al
-  otro extremo. Scroll-snap de proximidad. Sin línea bajo el título (el raíl separa). En escritorio no cambia.
+  otro extremo. El viaje sigue al scroll con amortiguación (`DAMP`) y curva suave; la página se asienta arriba o en el
+  perchero (snap de proximidad de Lenis). Sin línea bajo el título (el raíl separa). En escritorio no cambia.
 - Multipágina declarada en `vite.config.ts` (`build.rollupOptions.input`).
 
 ## Estructura
@@ -82,6 +83,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   (percha, sombra y texto) se centra en vertical (`setViewOffset`; el texto se coloca bajo la sombra). Necesita `build.target: 'es2022'` (await en el nivel superior).
 - `src/ui/stock.ts`: contador «9 / 11 prendas en percha» (colgadas / perchas) de la barra superior, alimentado por
   `RackHero` (`onStock`). Al cambiar, el número rueda y flota un «−1»/«+1».
+- `src/ui/smoothScroll.ts`: scroll suave con Lenis en las dos páginas (también táctil, `syncTouch`); `scrollToY()`.
+  El panel de la cesta conserva su scroll nativo. Respeta `prefers-reduced-motion`.
 - `src/ui/topbar.ts`: la cabecera es fija en todas las páginas (`position: fixed`, alto `--header-h`); al hacer
   scroll toma fondo translúcido (`.is-scrolled`). Shop the look reserva su alto arriba. En móvil es más baja
   (padding 10px, `--header-h: 58px`) y las posiciones del carrusel dependen de `--header-h`.
@@ -107,7 +110,7 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   sin brazos ni topes (`stage.setCarousel`), más separación y prendas menos de canto (`CAROUSEL`). Se ven unas 3–4
   prendas con una cortada; la activa queda centrada en horizontal (`anchor` 0,5). Arrastrar desliza las prendas por el raíl
   (`track`), la que pasa por su sitio gira de frente y al soltar encaja en la más cercana con inercia (`FLICK`);
-  flechas y teclado también deslizan. Sin hover en este modo. Empieza por la primera prenda colgada; contador y
+  flechas y teclado también deslizan. Sin hover en este modo. Contador y flechas a todo el ancho (flechas a los lados). Empieza por la primera prenda colgada; contador y
   flechas van encima de la ficha (`.rack.is-carousel`). En carrusel, el bloque (contador de prendas, lienzo, flechas y ficha) se centra en vertical
   en la pantalla (`--shift`) con sus espacios fijos y siempre cabe en `100dvh` (el lienzo se acorta en pantallas bajas
   y la cámara abre el encuadre para que las prendas se vean enteras, `CAROUSEL.depth`): lienzo más
