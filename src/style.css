@@ -951,7 +951,10 @@ body.has-look-morph .rack__info-thumb { visibility: hidden; } /* la que se ve es
 .rack.is-carousel .rack__arrow[data-dir="-1"] { order: -1; }
 .rack.is-carousel .rack__arrow[data-dir="1"] { order: 1; }
 .look__rack.is-carousel .rack__info { top: auto; bottom: 0; left: var(--gutter); right: var(--gutter); }
-.look__rack.is-carousel .rack__more { bottom: 40px; }
+/* Perchero vacío (look entero en la cesta): sin contador ni flechas; «Ver otros percheros»,
+   centrado en vertical en el perchero, bajo las perchas vacías */
+.look__rack.is-carousel.is-empty .rack__nav { visibility: hidden; }
+.look__rack.is-carousel .rack__more { top: calc(50% - 22px); bottom: auto; }
 /* Ficha con miniatura: la foto a la izquierda; a su lado nombre, marca y precio, y debajo los botones */
 .rack__info.has-thumb {
   display: grid;

@@ -82,6 +82,12 @@ export function mountLookMorph(opts: {
       updateSnaps(on);
     }
     if (!on) return;
+    // Perchero vacío (todo en la cesta): la ficha no se ve, así que la foto no viaja; se queda grande en su sitio
+    if (opts.rack.classList.contains('is-empty')) {
+      target = shown = 0;
+      place();
+      return;
+    }
     const max = maxScroll();
     target = max > 0 ? Math.min(1, Math.max(0, scrollY / max)) : 1;
     wake();
@@ -102,6 +108,7 @@ export function mountLookMorph(opts: {
   // Tocarla lleva al otro extremo: desde la miniatura vuelve arriba (foto grande) y viceversa
   // (el snap se pausa mientras dura: si no, devolvía la página al punto de partida)
   img.addEventListener('click', () => {
+    if (opts.rack.classList.contains('is-empty')) return;
     snap?.stop();
     scrollToY(target > 0.5 ? 0 : maxScroll(), () => snap?.start());
   });
