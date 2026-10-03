@@ -81,7 +81,6 @@ button { font: inherit; color: inherit; }
   overflow: hidden;
   height: 1.3em;
   line-height: 1.3em;
-  color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 .stock__num { grid-area: 1 / 1; text-align: right; }
@@ -102,7 +101,7 @@ button { font: inherit; color: inherit; }
   bottom: 100%;
   margin-bottom: 1px;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0;
   color: var(--ink);
   opacity: 0;
@@ -125,6 +124,7 @@ button { font: inherit; color: inherit; }
 .stock__total { white-space: pre; font-variant-numeric: tabular-nums; }
 .stock__noun { transition: color 0.3s var(--ease); }
 /* Al cambiar, el texto se aviva un instante y vuelve al gris de la barra */
+.topbar__crumb { font-weight: 400; } /* sin negrita: el número va igual que el texto */
 .topbar__crumb.is-changed { animation: crumb-flash 1.2s var(--ease); }
 @keyframes crumb-flash { 15% { color: var(--ink); } }
 
@@ -412,8 +412,10 @@ button { font: inherit; color: inherit; }
 .hero:has(> .hero__rack.is-carousel) .topbar__crumb {
   display: block;
   position: absolute;
-  left: var(--gutter);
+  left: 50%;
   top: 80px;
+  white-space: nowrap;
+  transform: translateX(-50%); /* hijo de la rejilla de la barra: se centra con transform */
 }
 @media (max-width: 640px) {
   .rack__info-name { font-size: 21px; }
@@ -520,7 +522,7 @@ button { font: inherit; color: inherit; }
   background: var(--ink);
   color: var(--paper);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0;
   line-height: 17px;
   text-align: center;
