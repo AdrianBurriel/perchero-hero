@@ -97,6 +97,9 @@ export function startLoader(): Loader {
     camera.zoom = Math.min(1, camera.aspect / 0.75);
     camera.clearViewOffset();
     camera.updateProjectionMatrix();
+    // La matriz de la cámara solo se actualiza al pintar: sin esto, si se mide antes del primer
+    // fotograma, project() usa una matriz vacía y la percha sale arriba y cortada (pasaba en móvil)
+    camera.updateMatrixWorld();
     const top = toPx(new THREE.Vector3(0, REST_Y + 0.02, 0), h);   // arriba del gancho
     const floor = toPx(new THREE.Vector3(0, 0, 0.08), h);          // borde delantero de la sombra
     const labelGap = 22;
@@ -108,7 +111,9 @@ export function startLoader(): Loader {
     if (label) label.style.top = `${floor - dy + labelGap}px`;
   };
   resize();
-  addEventListener('resize', resize);
+  // También cuando cambia el alto visible (barra del navegador en móvil: 100dvh), no solo la ventana
+  const sizeObserver = new ResizeObserver(() => resize());
+  sizeObserver.observe(root);
   document.fonts?.ready.then(resize); // el alto del texto cambia al cargar la fuente
 
   // Sombra difusa en el suelo: crece y se oscurece cuanto más cerca está la percha
@@ -210,7 +215,7 @@ export function startLoader(): Loader {
   done.then(() => {
     // Se termina de fundir la capa (CSS) y se libera el contexto WebGL
     setTimeout(() => {
-      removeEventListener('resize', resize);
+      sizeObserver.disconnect();
       pmrem.dispose();
       scene.environment?.dispose();
       shadow.geometry.dispose();
