@@ -407,11 +407,12 @@ button { font: inherit; color: inherit; }
    pantalla. --shift lo baja desde su sitio mínimo (contador a 80 px, bajo la cabecera) hasta centrarlo. */
 .hero:has(> .hero__rack.is-carousel) {
   /* Alto del lienzo: va con el ancho (el ancho de raíl visible es fijo), pero nunca más de lo que
-     cabe en la pantalla visible (100dvh) junto a cabecera, contador, flechas y ficha (292px) */
+     cabe en la pantalla visible (100dvh) junto a cabecera, contador, flechas y ficha */
   --screen-h: 100svh;
-  --stage-h: min(100vw * 1.08, var(--screen-h) - 292px);
+  --crumb-top: calc(var(--header-h) - 2px);  /* contador de prendas, justo bajo la cabecera */
+  --stage-h: min(100vw * 1.08, var(--screen-h) - var(--header-h) - 210px);
   --block-h: calc(var(--stage-h) + 188px); /* del contador de prendas al final de la ficha */
-  --shift: max(0px, (var(--screen-h) - var(--block-h)) / 2 - 80px);
+  --shift: max(0px, (var(--screen-h) - var(--block-h)) / 2 - var(--crumb-top));
   height: auto;
   min-height: var(--screen-h);
   overflow: visible;
@@ -420,7 +421,7 @@ button { font: inherit; color: inherit; }
   .hero:has(> .hero__rack.is-carousel) { --screen-h: 100dvh; }
 }
 .hero .hero__rack.is-carousel {
-  --stage-top: calc(104px + var(--shift)); /* aire entre la cabecera y el raíl */
+  --stage-top: calc(var(--header-h) + 22px + var(--shift)); /* aire entre la cabecera y el raíl */
   position: relative;
   inset: auto;
   height: calc(var(--stage-top) + var(--stage-h) + 172px);
@@ -439,7 +440,7 @@ button { font: inherit; color: inherit; }
   display: block;
   position: absolute;
   left: 50%;
-  top: calc(80px + var(--shift));
+  top: calc(var(--crumb-top) + var(--shift));
   white-space: nowrap;
   transform: translateX(-50%); /* hijo de la rejilla de la barra: se centra con transform */
 }
@@ -862,7 +863,8 @@ button { font: inherit; color: inherit; }
 }
 
 @media (max-width: 640px) {
-  .topbar { grid-template-columns: 1fr auto; }
+  :root { --header-h: 58px; }
+  .topbar { grid-template-columns: 1fr auto; padding-top: 10px; padding-bottom: 10px; } /* más baja: molesta menos */
   .topbar__crumb { display: none; }
   .topbar > .switch { justify-self: start; }
   .switch__opt { padding: 7px 12px; }

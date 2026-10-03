@@ -75,7 +75,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - `src/ui/stock.ts`: contador «9 / 11 prendas en percha» (colgadas / perchas) de la barra superior, alimentado por
   `RackHero` (`onStock`). Al cambiar, el número rueda y flota un «−1»/«+1».
 - `src/ui/topbar.ts`: la cabecera es fija en todas las páginas (`position: fixed`, alto `--header-h`); al hacer
-  scroll toma fondo translúcido (`.is-scrolled`). Shop the look reserva su alto arriba.
+  scroll toma fondo translúcido (`.is-scrolled`). Shop the look reserva su alto arriba. En móvil es más baja
+  (padding 10px, `--header-h: 58px`) y las posiciones del carrusel dependen de `--header-h`.
 - `src/style.css`: sistema visual común. Tipografías Instrument Serif (títulos) e Inter (texto) desde Google Fonts.
 - `src/garments.ts`: catálogo ficticio con `id` y `price` (€) (`garments` = portada, `lookGarments` = prendas de los looks;
   `byId(id)` busca en ambos).
