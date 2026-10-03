@@ -35,7 +35,10 @@ export function mountLookMorph(opts: {
   let running = false;
 
   // Snap de Lenis: arriba del todo y al final (perchero a pantalla completa); se recalcula al cambiar el alto
-  const snap = opts.lenis ? new Snap(opts.lenis, { type: 'proximity', duration: 0.9, debounce: 180 }) : null;
+  // Solo atrapa cerca de cada extremo (distanceThreshold): lejos de ellos el scroll es libre
+  const snap = opts.lenis
+    ? new Snap(opts.lenis, { type: 'proximity', distanceThreshold: '20%', duration: 0.7, debounce: 200 })
+    : null;
   let removeSnaps: (() => void)[] = [];
   const updateSnaps = (on: boolean) => {
     removeSnaps.forEach((r) => r());
@@ -97,6 +100,10 @@ export function mountLookMorph(opts: {
   new MutationObserver(update).observe(opts.rack, { attributes: true, attributeFilter: ['class'] });
 
   // Tocarla lleva al otro extremo: desde la miniatura vuelve arriba (foto grande) y viceversa
-  img.addEventListener('click', () => scrollToY(target > 0.5 ? 0 : maxScroll()));
+  // (el snap se pausa mientras dura: si no, devolvía la página al punto de partida)
+  img.addEventListener('click', () => {
+    snap?.stop();
+    scrollToY(target > 0.5 ? 0 : maxScroll(), () => snap?.start());
+  });
   update();
 }
