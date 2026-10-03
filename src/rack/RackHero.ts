@@ -4,6 +4,7 @@ import { createStage, createHanger, type Mount } from '../stage';
 import { buildGarment } from '../garment/builders';
 import { bindCardCta, formatPrice } from '../ui/productCard';
 import { bagAndFly, packAndFly, type Launch } from '../ui/flyer';
+import { swapText, rollNumber } from '../ui/textSwap';
 
 /* Perchero interactivo reutilizable: crea su propio DOM (lienzo, flechas, ficha) dentro del
    contenedor, sin dependencias globales. Lo usan la portada y Shop the look.
@@ -421,24 +422,20 @@ export class RackHero {
     this.stage.renderer.render(this.stage.scene, this.stage.camera);
   }
 
-  /** Ficha fija: datos de la seleccionada (se refresca solo al cambiar, con una entrada escalonada). */
+  /** Ficha fija: datos de la seleccionada (se refresca solo al cambiar: persiana en el texto, odómetro en el precio). */
   private fillInfo() {
     const info = this.el.info;
     const it = this.items[this.selected];
     if (!info || !it || it.gone || this.lastInfo === this.selected) return;
-    // Sentido del slide: el texto entra desde el lado hacia el que se avanza (0 = sin desplazamiento)
-    const dir = this.lastInfo < 0 ? 0 : Math.sign(this.selected - this.lastInfo);
-    info.style.setProperty('--dir', String(dir));
+    // Sentido del slide: hacia la derecha el texto nuevo entra por abajo; hacia la izquierda, por arriba
+    info.style.setProperty('--swap-dir', this.selected < this.lastInfo ? '-1' : '1');
     this.lastInfo = this.selected;
-    const set = (sel: string, text: string) => (info.querySelector<HTMLElement>(sel)!.textContent = text);
-    set('.rack__info-brand', it.data.brand);
-    set('.rack__info-name', it.data.name);
-    set('.rack__info-price', formatPrice(it.data.price));
-    info.querySelector<HTMLElement>('.card__cta')!.dataset.product = it.data.name;
-    info.querySelector<HTMLElement>('.card__add')!.setAttribute('aria-label', `Añadir a la cesta: ${it.data.name}`);
-    info.classList.remove('is-swap');
-    void info.offsetWidth; // reinicia la entrada
-    info.classList.add('is-swap');
+    const q = (sel: string) => info.querySelector<HTMLElement>(sel)!;
+    swapText(q('.rack__info-name'), it.data.name, { byChar: true });
+    swapText(q('.rack__info-brand'), it.data.brand, { delay: 90 });
+    rollNumber(q('.rack__info-price'), formatPrice(it.data.price));
+    q('.card__cta').dataset.product = it.data.name;
+    q('.card__add').setAttribute('aria-label', `Añadir a la cesta: ${it.data.name}`);
   }
 
   private frame = (now: number) => {
