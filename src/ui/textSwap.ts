@@ -21,6 +21,7 @@ function spoken(el: HTMLElement, text: string) {
 
 /** Cambia el texto de `el` con una persiana; `byChar` lo parte en letras escalonadas. */
 export function swapText(el: HTMLElement, text: string, { byChar = false, delay = 0 } = {}) {
+  el.classList.add('swap-host'); // la máscara
   spoken(el, text);
   // Lo que estuviera saliendo se quita ya; lo visible pasa a salir
   el.querySelectorAll(':scope > .swap.is-old').forEach((o) => o.remove());

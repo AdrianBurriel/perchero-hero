@@ -98,6 +98,7 @@ export class RackHero {
   private accumulator = 0;
   private lastHitAt = 0;
   private lastInfo = -1;
+  private lastCaption = -1;
   private readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   private readonly sideRad = THREE.MathUtils.degToRad(SIDE_ANGLE);
   private readonly push: number;
@@ -408,18 +409,25 @@ export class RackHero {
       it.body.scale.y = 1 - (1 - it.restock) ** 3;
     }
     const active = this.active;
-    const name = active?.data.name ?? '';
-    if (this.el.captionName.textContent !== name) {
-      this.el.captionName.textContent = name;
-      this.el.captionBrand.textContent = active?.data.brand ?? '';
-    }
-    this.fillInfo();
     const index = active ? this.items.indexOf(active) : -1;
+    this.fillCaption(index);
+    this.fillInfo();
     if (index !== this.lastActive) {
       this.lastActive = index;
       this.opts.onChange?.(index);
     }
     this.stage.renderer.render(this.stage.scene, this.stage.camera);
+  }
+
+  /** Nombre de la prenda activa bajo el perchero (sin ficha fija): misma persiana que la ficha. */
+  private fillCaption(index: number) {
+    if (this.el.info || index < 0 || index === this.lastCaption) return;
+    const caption = this.el.captionName.parentElement!;
+    caption.style.setProperty('--swap-dir', index < this.lastCaption ? '-1' : '1');
+    this.lastCaption = index;
+    const { name, brand } = this.items[index]!.data;
+    swapText(this.el.captionName, name, { byChar: true });
+    swapText(this.el.captionBrand, brand, { delay: 90 });
   }
 
   /** Ficha fija: datos de la seleccionada (se refresca solo al cambiar: persiana en el texto, odómetro en el precio). */

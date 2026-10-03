@@ -1,4 +1,5 @@
 import type { GarmentData } from '../garments';
+import { swapText, rollNumber } from './textSwap';
 
 /* Ficha breve de producto: misma estructura y altura en la portada y en Shop the look. */
 
@@ -31,16 +32,27 @@ export const cardHTML = (nameId: string) => `
     </div>
   </div>`;
 
-/** Rellena una ficha ya montada con los datos de la prenda. */
+/** Rellena una ficha ya montada con los datos de la prenda. Al cambiar de prenda, el texto se anima
+    (persiana en nombre y marca, odómetro en contador y precio, fundido en material y descripción)
+    en el sentido del slide. */
 export function fillCard(root: HTMLElement, g: GarmentData, index: number, total: number, inBag = false) {
-  const set = (sel: string, text: string) => (root.querySelector<HTMLElement>(sel)!.textContent = text);
-  set('.card__brand', g.brand);
-  set('.card__index', `${pad(index + 1)} / ${pad(total)}`);
-  set('.card__name', g.name);
-  set('.card__material', g.material);
-  set('.card__price', formatPrice(g.price));
-  set('.card__text', g.description);
-  root.querySelector<HTMLElement>('.card__cta')!.dataset.product = g.name;
+  const q = (sel: string) => root.querySelector<HTMLElement>(sel)!;
+  if (root.dataset.id !== g.id) {
+    const prev = Number(root.dataset.index ?? index);
+    root.style.setProperty('--swap-dir', index < prev ? '-1' : '1');
+    root.dataset.id = g.id;
+    root.dataset.index = String(index);
+    swapText(q('.card__name'), g.name, { byChar: true });
+    swapText(q('.card__brand'), g.brand, { delay: 60 });
+    rollNumber(q('.card__index'), `${pad(index + 1)} / ${pad(total)}`);
+    rollNumber(q('.card__price'), formatPrice(g.price));
+    q('.card__material').textContent = g.material;
+    q('.card__text').textContent = g.description;
+    root.classList.remove('is-swap');
+    void root.offsetWidth; // reinicia el fundido
+    root.classList.add('is-swap');
+  }
+  q('.card__cta').dataset.product = g.name;
   const add = root.querySelector<HTMLButtonElement>('.card__add')!;
   add.disabled = inBag;
   add.textContent = inBag ? 'En la cesta' : 'Añadir a la cesta';
