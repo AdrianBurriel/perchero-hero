@@ -19,6 +19,7 @@ await loader.intro;
 // Portada: perchero de pared con todo el catálogo. Lo que ya está en la cesta no se cuelga.
 const rack = new RackHero(document.querySelector<HTMLElement>('#rack')!, garments, {
   mount: 'wall',
+  carousel: true, // en móvil: raíl de lado a lado y arrastre
   gone: (i) => inCart(garments[i]!.id),
   onStock: mountStock(document.querySelector<HTMLElement>('#stock')!),
   // Rellenar: cada prenda vuelve a su percha (y sale de la cesta), una tras otra

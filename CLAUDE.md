@@ -88,7 +88,12 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - Slider: flechas ‹ › (y teclas ← →) cambian la prenda seleccionada, que gira de frente en su sitio
   (las perchas no se desplazan para centrarla). En Shop the look hover y foco previsualizan otra prenda;
   en la portada la seleccionan.
-- La cámara encaja siempre el perchero entero (raíl y soportes, `RAIL_HALF`).
+- La cámara encaja siempre el perchero entero (raíl y soportes, `RAIL_HALF`), salvo en carrusel.
+- Carrusel (opción `carousel`, solo en la portada, lienzo de menos de `CAROUSEL_MAX_W` = 700 px): raíl de lado a lado
+  sin brazos ni topes (`stage.setCarousel`), más separación y prendas menos de canto (`CAROUSEL`). Se ven unas 3–4
+  prendas con una cortada; la activa queda a `anchor` del borde izquierdo. Arrastrar desliza las prendas por el raíl
+  (`track`), la que pasa por su sitio gira de frente y al soltar encaja en la más cercana con inercia (`FLICK`);
+  flechas y teclado también deslizan. Sin hover en este modo.
 - Paso fijo de 1/120 s con acumulador. Parámetros al inicio de `src/rack/RackHero.ts`.
 - El péndulo con viento y retraso de tela existió en commits anteriores (ver historial de git).
 

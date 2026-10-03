@@ -22,6 +22,16 @@ const HOVER_GRACE = 180; // ms sin tocar prenda antes de soltar la activa (evita
 const RAIL_MARGIN = 0.24; // raíl sobrante a cada lado de la última prenda apartada (m)
 const RESTOCK = 0.7;      // s que tarda una prenda devuelta en volver a colgarse (se desenrolla desde el gancho)
 
+// Carrusel (opción `carousel`, en lienzos estrechos): raíl de lado a lado, se ven unas 3–4 prendas
+// con una cortada y se arrastra para pasarlas. La activa queda a `anchor` del borde izquierdo.
+const CAROUSEL_MAX_W = 700; // px de ancho del lienzo por debajo de los cuales se activa
+const CAROUSEL = { spacing: 0.2, push: 0.2, side: 62, view: 1.25, anchor: 0.36 };
+const TRACK_STIFF = 70;   // muelle del desplazamiento por el raíl al soltar o cambiar de prenda
+const TRACK_DAMP = 16.7;  // 2·√TRACK_STIFF: llega sin rebote
+const DRAG_SLOP = 6;      // px antes de considerar que es un arrastre y no un toque
+const FLICK = 0.12;       // s de inercia al soltar: un gesto rápido avanza varias prendas
+const EDGE_RESIST = 0.35; // más allá de la primera o la última, el arrastre cuesta más
+
 export interface RackOptions {
   mount?: Mount;     // 'wall' = raíl de pared, 'floor' = burro con ruedas
   transparent?: boolean; // sin fondo propio: se integra en el fondo de la página
@@ -34,6 +44,7 @@ export interface RackOptions {
   gone?: (index: number) => boolean;      // prendas que empiezan fuera del perchero (ya en la cesta)
   onStock?: (hanging: number, total: number) => void; // colgadas / perchas (al empezar y cada vez que cambia)
   onRefill?: () => void; // botón «Rellenar perchero» (aparece cuando no queda ninguna colgada)
+  carousel?: boolean;    // en pantallas estrechas, carrusel de lado a lado con arrastre
 }
 
 interface Item {
@@ -100,8 +111,15 @@ export class RackHero {
   private lastInfo = -1;
   private lastCaption = -1;
   private readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  private readonly sideRad = THREE.MathUtils.degToRad(SIDE_ANGLE);
-  private readonly push: number;
+  private sideRad = THREE.MathUtils.degToRad(SIDE_ANGLE);
+  private push: number;
+  private readonly basePush: number;
+  private readonly spacing: number;
+  private carousel = false;
+  private track = 0;  // desplazamiento de todas las prendas por el raíl (m), solo en carrusel
+  private trackV = 0;
+  private drag: { id: number; x: number; track: number; moved: boolean; lastX: number; lastT: number; v: number } | null = null;
+  private suppressClick = false;
   private readonly raycaster = new THREE.Raycaster();
   private readonly ndc = new THREE.Vector2();
   private readonly hitMeshes: THREE.Mesh[] = [];
@@ -113,8 +131,8 @@ export class RackHero {
   };
 
   constructor(private readonly container: HTMLElement, garments: GarmentData[], private readonly opts: RackOptions = {}) {
-    const spacing = opts.spacing ?? 0.12;
-    this.push = opts.push ?? 0.28;
+    const spacing = (this.spacing = opts.spacing ?? 0.12);
+    this.push = this.basePush = opts.push ?? 0.28;
     this.selected = opts.initial ?? Math.floor(garments.length / 2);
 
     container.classList.add('rack');
@@ -148,6 +166,7 @@ export class RackHero {
     new ResizeObserver(([entry]) => {
       if (!entry) return;
       this.stage.resize(entry.contentRect.width, entry.contentRect.height);
+      this.setCarousel(!!opts.carousel && entry.contentRect.width < CAROUSEL_MAX_W);
       this.render();
     }).observe(this.el.canvas);
     // Fuera de pantalla no se simula ni se pinta
@@ -162,6 +181,33 @@ export class RackHero {
       }
     }).observe(this.el.canvas);
     requestAnimationFrame(this.frame);
+  }
+
+  /** Cambia entre perchero entero y carrusel (raíl de lado a lado, más separación, arrastre). */
+  private setCarousel(on: boolean) {
+    if (on === this.carousel) return;
+    this.carousel = on;
+    const spacing = on ? CAROUSEL.spacing : this.spacing;
+    const n = this.items.length;
+    this.items.forEach((it, i) => (it.baseX = (i - (n - 1) / 2) * spacing));
+    this.push = on ? CAROUSEL.push : this.basePush;
+    this.sideRad = THREE.MathUtils.degToRad(on ? CAROUSEL.side : SIDE_ANGLE);
+    // La cámara se corre a la derecha: la activa queda a `anchor` del borde izquierdo
+    this.stage.setCarousel(on ? { view: CAROUSEL.view, centerX: (0.5 - CAROUSEL.anchor) * CAROUSEL.view } : null);
+    this.hovered = null;
+    this.drag = null;
+    this.track = on ? -this.items[this.selected]!.baseX : 0;
+    this.trackV = 0;
+    this.el.canvas.style.cursor = on ? 'grab' : '';
+    this.container.classList.toggle('is-carousel', on);
+    this.step(0, true);
+  }
+
+  /** Prenda (índice) cuyo sitio en el raíl queda más cerca de `x`. */
+  private closest(x: number) {
+    let best = 0;
+    this.items.forEach((it, i) => Math.abs(it.baseX - x) < Math.abs(this.items[best]!.baseX - x) && (best = i));
+    return best;
   }
 
   /** Selecciona una prenda (la pone de frente). Público para enlazarlo con otros controles. */
@@ -346,7 +392,54 @@ export class RackHero {
       e.preventDefault();
     });
 
+    // Carrusel: arrastrar desplaza las prendas por el raíl; al soltar encaja en la más cercana
+    canvas.addEventListener('pointerdown', (e) => {
+      if (!this.carousel || e.button !== 0) return;
+      this.drag = { id: e.pointerId, x: e.clientX, track: this.track, moved: false, lastX: e.clientX, lastT: e.timeStamp, v: 0 };
+    });
+    const release = (e: PointerEvent) => {
+      const d = this.drag;
+      if (!d || e.pointerId !== d.id) return;
+      this.drag = null;
+      canvas.style.cursor = 'grab';
+      if (!d.moved) return; // un toque: lo trata el clic
+      this.suppressClick = true;
+      setTimeout(() => (this.suppressClick = false), 60);
+      // Con inercia: un gesto rápido sigue unas prendas más allá
+      const i = this.closest(-(this.track + d.v * FLICK));
+      this.select(i, d.v < 0 ? 1 : -1);
+      this.trackV = d.v; // el muelle arranca con la velocidad del dedo
+    };
+    canvas.addEventListener('pointerup', release);
+    canvas.addEventListener('pointercancel', release);
+
     canvas.addEventListener('pointermove', (e) => {
+      if (this.carousel) {
+        const d = this.drag;
+        if (!d || e.pointerId !== d.id) return;
+        const dx = e.clientX - d.x;
+        if (!d.moved && Math.abs(dx) > DRAG_SLOP) {
+          d.moved = true;
+          canvas.setPointerCapture(e.pointerId);
+          canvas.style.cursor = 'grabbing';
+        }
+        if (!d.moved) return;
+        const ppm = this.stage.pxPerMeter();
+        let t = d.track + dx / ppm;
+        const min = -this.items.at(-1)!.baseX;
+        const max = -this.items[0]!.baseX;
+        if (t > max) t = max + (t - max) * EDGE_RESIST;
+        else if (t < min) t = min + (t - min) * EDGE_RESIST;
+        const dt = (e.timeStamp - d.lastT) / 1000;
+        if (dt > 0) d.v = 0.8 * ((e.clientX - d.lastX) / ppm / dt) + 0.2 * d.v;
+        d.lastX = e.clientX;
+        d.lastT = e.timeStamp;
+        this.track = t;
+        // La que pasa por su sitio se pone de frente: el carrusel va mostrando cada prenda
+        const i = this.closest(-t);
+        if (i !== this.selected && !this.items[i]!.gone) this.select(i);
+        return;
+      }
       const now = performance.now();
       const item = this.pick(e);
       if (item) {
@@ -362,6 +455,7 @@ export class RackHero {
     });
     canvas.addEventListener('pointerleave', () => (this.hovered = null));
     canvas.addEventListener('click', (e) => {
+      if (this.suppressClick) return; // venía de un arrastre
       const item = this.pick(e);
       if (!item) return;
       const i = this.items.indexOf(item);
@@ -378,6 +472,17 @@ export class RackHero {
 
   /* ---------- Muelles de giro y apartado ---------- */
   private step(dt: number, snap = false) {
+    // Carrusel: el raíl lleva la seleccionada a su sitio (salvo mientras se arrastra)
+    if (this.carousel && !this.drag?.moved) {
+      const target = -this.items[this.selected]!.baseX;
+      if (this.reduceMotion || snap) {
+        this.track = target;
+        this.trackV = 0;
+      } else {
+        this.trackV += (TRACK_STIFF * (target - this.track) - TRACK_DAMP * this.trackV) * dt;
+        this.track += this.trackV * dt;
+      }
+    }
     const active = this.active;
     const activeIndex = active ? this.items.indexOf(active) : -1;
     this.items.forEach((it, i) => {
@@ -403,7 +508,7 @@ export class RackHero {
 
   private render() {
     for (const it of this.items) {
-      it.slot.position.x = it.baseX + it.shift;
+      it.slot.position.x = it.baseX + it.shift + this.track;
       it.turner.rotation.y = (1 - it.turn) * this.sideRad;
       // Al volver a colgarse, la prenda se desenrolla hacia abajo desde el gancho
       it.body.scale.y = 1 - (1 - it.restock) ** 3;

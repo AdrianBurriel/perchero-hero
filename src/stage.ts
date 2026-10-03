@@ -88,14 +88,20 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
   wall.position.set(0, -0.6, wallZ);
   scene.add(wall);
 
-  // Raíl
+  // Raíl (con sus topes y brazos: se ocultan en modo carrusel)
+  const rack = new THREE.Group();
+  scene.add(rack);
   const rail = cylinder(0.012, railHalf * 2, chrome, 'x');
-  scene.add(rail);
+  rack.add(rail);
   for (const x of [-railHalf, railHalf]) {
     const cap = new THREE.Mesh(new THREE.SphereGeometry(0.014, 24, 16), chrome);
     cap.position.x = x;
-    scene.add(cap);
+    rack.add(cap);
   }
+  // Carrusel (móvil): raíl que cruza la pantalla de lado a lado, sin brazos ni topes
+  const longRail = cylinder(0.012, 30, chrome, 'x');
+  longRail.visible = false;
+  scene.add(longRail);
 
   if (mount === 'wall') {
     // Dos brazos a la pared
@@ -104,7 +110,7 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
       arm.position.set(x, 0, wallZ / 2);
       const plate = cylinder(0.03, 0.008, chrome, 'z');
       plate.position.set(x, 0, wallZ + 0.004);
-      scene.add(arm, plate);
+      rack.add(arm, plate);
     }
   } else {
     // Burro: suelo, dos postes y base en T con ruedas
@@ -136,19 +142,37 @@ export function createStage(canvas: HTMLCanvasElement, { mount, railHalf, transp
     rail.material = blackSteel;
   }
 
-  /** Encaja el perchero entero en el lienzo, sea cual sea la proporción. */
+  // Encuadre del carrusel: ancho visible (m) y x del centro de la vista; null = perchero entero
+  let carousel: { view: number; centerX: number } | null = null;
+  let size = { width: 1, height: 1 };
+
+  /** Encaja el perchero entero en el lienzo, sea cual sea la proporción (o, en carrusel, `view` metros de raíl). */
   function resize(width: number, height: number) {
+    size = { width, height };
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     const t = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-    const halfW = railHalf + 0.1;
+    const halfW = carousel ? carousel.view / 2 : railHalf + 0.1;
     const dist = Math.max(frame.half / t, halfW / (t * camera.aspect));
-    camera.position.set(0, frame.y + 0.12, dist);
-    camera.lookAt(0, frame.y, 0);
+    const x = carousel?.centerX ?? 0;
+    camera.position.set(x, frame.y + 0.12, dist);
+    camera.lookAt(x, frame.y, 0);
     camera.updateProjectionMatrix();
   }
 
-  return { renderer, scene, camera, resize };
+  /** Modo carrusel: raíl de lado a lado y `view` metros visibles centrados en `centerX`; null = perchero entero. */
+  function setCarousel(c: { view: number; centerX: number } | null) {
+    carousel = c;
+    rack.visible = !c;
+    longRail.visible = !!c;
+    resize(size.width, size.height);
+  }
+
+  /** Píxeles por metro en el plano del raíl (para convertir el arrastre). */
+  const pxPerMeter = () =>
+    size.height / (2 * camera.position.z * Math.tan(THREE.MathUtils.degToRad(FOV / 2)));
+
+  return { renderer, scene, camera, resize, setCarousel, pxPerMeter };
 }
 
 /** Percha: gancho giratorio (sigue al raíl) y cuerpo de madera (gira con la prenda).
