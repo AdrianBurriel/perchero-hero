@@ -19,12 +19,14 @@ function spoken(el: HTMLElement, text: string) {
   sr.textContent = text;
 }
 
-/** Cambia el texto de `el` con una persiana; `byChar` lo parte en letras escalonadas. */
-export function swapText(el: HTMLElement, text: string, { byChar = false, delay = 0 } = {}) {
+/** Cambia el texto de `el` con una persiana; `byChar` lo parte en letras escalonadas.
+    `replace`: el texto anterior desaparece sin animar (p. ej. si ya se lo lleva otra animación). */
+export function swapText(el: HTMLElement, text: string, { byChar = false, delay = 0, replace = false } = {}) {
   el.classList.add('swap-host'); // la máscara
   spoken(el, text);
-  // Lo que estuviera saliendo se quita ya; lo visible pasa a salir
+  // Lo que estuviera saliendo se quita ya; lo visible pasa a salir (o se quita también, con `replace`)
   el.querySelectorAll(':scope > .swap.is-old').forEach((o) => o.remove());
+  if (replace) el.querySelectorAll(':scope > .swap').forEach((o) => o.remove());
   const prev = el.querySelector<HTMLElement>(':scope > .swap');
   if (prev) {
     prev.classList.add('is-old');

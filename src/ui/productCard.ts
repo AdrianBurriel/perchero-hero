@@ -32,18 +32,37 @@ export const cardHTML = (nameId: string) => `
     </div>
   </div>`;
 
+/** Cambio de prenda como en una baraja: una copia de la tarjeta actual sale hacia un lado
+    (y se elimina) mientras la tarjeta, ya con la prenda nueva, entra desde el otro. */
+function dealCard(root: HTMLElement): boolean {
+  const card = root.querySelector<HTMLElement>('.card:not(.card--ghost)');
+  if (!card) return false;
+  root.querySelectorAll('.card--ghost').forEach((g) => g.remove());
+  const ghost = card.cloneNode(true) as HTMLElement;
+  ghost.classList.add('card--ghost');
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.inert = true;
+  ghost.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+  ghost.querySelectorAll('.swap.is-old').forEach((el) => el.remove()); // solo el texto que se veía
+  card.after(ghost); // detrás en el DOM: los querySelector de la ficha siguen dando con la tarjeta real
+  setTimeout(() => ghost.remove(), 600);
+  return true;
+}
+
 /** Rellena una ficha ya montada con los datos de la prenda. Al cambiar de prenda, el texto se anima
-    (persiana en nombre y marca, odómetro en contador y precio, fundido en material y descripción)
-    en el sentido del slide. */
+    (la tarjeta cambia como en una baraja; dentro, persiana en nombre y marca, odómetro en contador
+    y precio, fundido en material y descripción), en el sentido del slide. */
 export function fillCard(root: HTMLElement, g: GarmentData, index: number, total: number, inBag = false) {
   const q = (sel: string) => root.querySelector<HTMLElement>(sel)!;
   if (root.dataset.id !== g.id) {
     const prev = Number(root.dataset.index ?? index);
     root.style.setProperty('--swap-dir', index < prev ? '-1' : '1');
+    // La tarjeta anterior se va con su texto: en la nueva solo entra el texto nuevo
+    const replace = !!root.dataset.id && dealCard(root);
     root.dataset.id = g.id;
     root.dataset.index = String(index);
-    swapText(q('.card__name'), g.name, { byChar: true });
-    swapText(q('.card__brand'), g.brand, { delay: 60 });
+    swapText(q('.card__name'), g.name, { byChar: true, delay: replace ? 120 : 0, replace });
+    swapText(q('.card__brand'), g.brand, { delay: replace ? 180 : 60, replace });
     rollNumber(q('.card__index'), `${pad(index + 1)} / ${pad(total)}`);
     rollNumber(q('.card__price'), formatPrice(g.price));
     q('.card__material').textContent = g.material;

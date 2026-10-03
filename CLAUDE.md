@@ -39,7 +39,8 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   hace una persiana enmascarada letra a letra (`swapText`: primero sale el anterior y luego entra el nuevo, sin montarse), la marca la misma en bloque y el precio rueda como un
   odómetro (`rollNumber`); hacia la izquierda el texto entra por arriba (`--swap-dir`). Los botones no se animan. El texto de ayuda va arriba, bajo el selector.
   Shop the look (`onOpen`) usa su propio detalle; allí el nombre bajo el perchero hace la misma persiana y la ficha
-  de detalle (`fillCard`) se anima al cambiar de prenda: persiana en nombre y marca, odómetro en contador y precio,
+  de detalle (`fillCard`) se anima al cambiar de prenda: la tarjeta cambia como una baraja (`dealCard`: una copia sale
+  girando hacia un lado y la tarjeta entra desde el otro) y dentro, persiana en nombre y marca, odómetro en contador y precio,
   fundido en material y descripción. Las flechas ‹ › son iguales (aro y relleno al pasar por encima).
 - `src/stage.ts`: renderer, cámara, luces, pared, raíl de pared o burro (postes, base, ruedas, suelo) y percha.
 - `src/garment/pillow.ts`: malla "acolchada" a partir de una silueta 2D (dos caras cosidas en el canto).

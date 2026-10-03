@@ -439,6 +439,25 @@ button { font: inherit; color: inherit; }
 .is-swap .card__material { animation: card-swap 0.6s var(--swap-ease) 0.2s both; }
 .is-swap .card__text { animation: card-swap 0.6s var(--swap-ease) 0.28s both; }
 @keyframes card-swap { from { opacity: 0; transform: translateY(calc(var(--swap-dir) * 6px)); } }
+/* La tarjeta cambia como en una baraja: la anterior sale hacia un lado girando y la nueva
+   entra desde el otro (--swap-dir: 1 = avanzar, la nueva llega por la derecha) */
+.look__detail { perspective: 1400px; }
+.is-swap .card:not(.card--ghost) { position: relative; z-index: 1; animation: card-deal-in 0.7s var(--swap-ease) 0.12s both; }
+.card--ghost { position: absolute; inset: 0; z-index: 0; pointer-events: none; animation: card-deal-out 0.45s cubic-bezier(0.5, 0, 0.75, 0) both; }
+.card--ghost * { animation: none !important; transition: none !important; }
+@keyframes card-deal-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--swap-dir) * 70px)) rotateY(calc(var(--swap-dir) * -22deg)) scale(0.94);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 30px 60px -16px rgba(0, 0, 0, 0.45);
+  }
+}
+@keyframes card-deal-out {
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--swap-dir) * -70px)) rotateY(calc(var(--swap-dir) * 22deg)) scale(0.94);
+  }
+}
 .card .btn { padding: 0 16px; letter-spacing: 0.1em; white-space: nowrap; }
 
 /* ---------- Cesta ---------- */
