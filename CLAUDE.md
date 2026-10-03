@@ -83,8 +83,9 @@ y abren un detalle al hacer clic. Texto de referencia del original:
 - `src/garments.ts`: catálogo ficticio con `id` y `price` (€) (`garments` = portada, `lookGarments` = prendas de los looks;
   `byId(id)` busca en ambos).
 - `src/looks.ts`: looks (foto, texto y prendas con posición del punto en % sobre la foto).
-- `public/favicon.ico`, `favicon-32.png`, `apple-touch-icon.png` (e `icon-512.png`, el original): la percha 3D de la web
-  (`createHanger`, engrosada para leerse en pequeño) renderizada con three.js sobre un cuadrado crema redondeado.
+- `public/favicon.ico`, `favicon-32.png`, `apple-touch-icon.png` (e `icon-512.png`, el original): solo el gancho metálico
+  de la percha 3D (`createHanger`, casi de perfil para que se vea el rizo y engrosado para leerse en pequeño),
+  renderizado con three.js sobre un cuadrado crema redondeado.
 - `public/looks/`: fotos de los looks (`look-01.jpg`, aportada por el usuario). Si falta, se ve el `*-placeholder.svg`.
   Las prendas 3D del look se recrean a mano a partir de la foto (colores, tejidos y detalles).
 
