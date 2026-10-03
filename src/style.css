@@ -393,20 +393,21 @@ button { font: inherit; color: inherit; }
    flechas y, al final, la ficha. Todo en flujo, sin huecos. */
 .hero:has(> .hero__rack.is-carousel) { height: auto; min-height: 0; overflow: visible; }
 .hero .hero__rack.is-carousel {
+  --stage-top: 104px; /* aire entre la cabecera y el raíl */
   --stage-h: calc(100vw * 1.08); /* el ancho de raíl visible es fijo: la altura va con el ancho */
   position: relative;
   inset: auto;
-  height: calc(76px + var(--stage-h) + 150px);
+  height: calc(var(--stage-top) + var(--stage-h) + 150px);
 }
 .rack.is-carousel .rack__stage {
-  top: 76px; /* bajo la cabecera */
+  top: var(--stage-top); /* bajo la cabecera */
   height: var(--stage-h);
   /* las sombras se funden abajo (las prendas acaban antes del fundido) */
   -webkit-mask-image: linear-gradient(to bottom, #000 84%, transparent);
   mask-image: linear-gradient(to bottom, #000 84%, transparent);
 }
-.rack.is-carousel .rack__nav { top: calc(76px + var(--stage-h) + 6px); bottom: auto; right: 50%; transform: translateX(50%); }
-.rack.is-carousel .rack__info { top: calc(76px + var(--stage-h) + 66px); bottom: auto; }
+.rack.is-carousel .rack__nav { top: calc(var(--stage-top) + var(--stage-h) + 6px); bottom: auto; right: 50%; transform: translateX(50%); }
+.rack.is-carousel .rack__info { top: calc(var(--stage-top) + var(--stage-h) + 66px); bottom: auto; }
 @media (max-width: 640px) {
   .rack__info-name { font-size: 21px; }
   .rack__info .card__add { height: 40px; }
