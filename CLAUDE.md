@@ -27,10 +27,12 @@ y abren un detalle al hacer clic. Texto de referencia del original:
   El detalle va en la parte baja de la foto, abierto desde el inicio, y sigue a la prenda activa
   (`RackHero` con `onOpen`: la página muestra el detalle en lugar del perchero).
   Encuadre de la foto con `focus` en `src/looks.ts` (punto centrado y zoom; foto y puntos se amplían juntos).
-  En móvil (perchero en carrusel) la página cabe en `100dvh` y se parece a la portada: título y «Comprar el look»
-  arriba, el mismo carrusel (`carousel: true`) y la ficha fija de la portada (`info: 'carousel'`) con la foto del look
-  en miniatura (`thumb`); sin foto grande, puntos ni tarjeta de detalle. El perchero mide como el de la portada y se
-  encoge si no cabe; el bloque se centra en vertical. En escritorio no cambia.
+  En móvil (perchero en carrusel) se parece a la portada: título, la foto del look a ancho completo, total y «Comprar
+  el look» y el mismo carrusel (`carousel: true`) con la ficha fija de la portada (`info: 'carousel'`) y la foto en
+  miniatura (`thumb`); sin puntos ni tarjeta de detalle. Al bajar, la foto grande se convierte en la miniatura
+  (`src/ui/lookMorph.ts`: una copia fija interpola posición y tamaño según el scroll); al final, fila de compra +
+  perchero llenan la pantalla (100dvh; el perchero mide lo que deja `--buy-h`). Al subir vuelve; tocarla lleva al
+  otro extremo. Scroll-snap de proximidad. Sin línea bajo el título (el raíl separa). En escritorio no cambia.
 - Multipágina declarada en `vite.config.ts` (`build.rollupOptions.input`).
 
 ## Estructura

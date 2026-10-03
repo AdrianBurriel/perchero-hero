@@ -9,6 +9,7 @@ import { mountTopbar } from './ui/topbar';
 import { mountSwitch, leaveSection } from './ui/switcher';
 import { mountStock } from './ui/stock';
 import { startLoader } from './ui/loader';
+import { mountLookMorph } from './ui/lookMorph';
 
 const loader = startLoader();
 
@@ -158,6 +159,21 @@ const rack = new RackHero($('#look-rack'), garments, {
   onStock: mountStock($('#stock'), 'Look 01 · '),
 });
 $('#look-rack').append(more);
+
+/* ---------- Móvil: la foto grande se convierte en la miniatura de la ficha con el scroll ---------- */
+// Hueco de la foto bajo el título (solo se ve con el perchero en carrusel)
+const slot = document.createElement('div');
+slot.className = 'look__shot';
+$('.look__heading').after(slot);
+// El perchero mide el alto de pantalla que deja la fila de compra: se mide (cambia con «Devolver al perchero»)
+new ResizeObserver(([e]) => e && $('.look').style.setProperty('--buy-h', `${e.borderBoxSize[0]!.blockSize}px`)).observe($('.look__buy'));
+mountLookMorph({
+  slot,
+  rack: $('#look-rack'),
+  thumb: () => document.querySelector<HTMLElement>('#look-rack .rack__info-thumb'),
+  src: look.image,
+  alt: look.alt,
+});
 // Quitar de la cesta la devuelve a su percha
 onCartRemove((id) => {
   rack.restore(garments.findIndex((g) => g.id === id));
