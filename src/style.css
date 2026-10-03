@@ -385,6 +385,9 @@ button { font: inherit; color: inherit; }
   .rack__info { flex-wrap: wrap; gap: 12px 16px; }
   .rack__info-actions { flex-basis: 100%; justify-content: center; }
 }
+/* Carrusel (móvil): contador y flechas encima de la ficha, que queda pegada abajo */
+.rack.is-carousel .rack__info { bottom: var(--gutter); }
+.rack.is-carousel .rack__nav { right: 50%; bottom: calc(var(--gutter) + 92px); transform: translateX(50%); }
 @media (max-width: 640px) {
   .rack__info-name { font-size: 21px; }
   .rack__info .card__add { height: 40px; }

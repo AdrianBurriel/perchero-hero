@@ -196,6 +196,7 @@ export class RackHero {
     this.stage.setCarousel(on ? { view: CAROUSEL.view, centerX: (0.5 - CAROUSEL.anchor) * CAROUSEL.view } : null);
     this.hovered = null;
     this.drag = null;
+    if (on) this.select(0, 1); // el carrusel empieza por la primera prenda colgada
     this.track = on ? -this.items[this.selected]!.baseX : 0;
     this.trackV = 0;
     this.el.canvas.style.cursor = on ? 'grab' : '';
