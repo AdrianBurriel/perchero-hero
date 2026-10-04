@@ -890,11 +890,11 @@ button { font: inherit; color: inherit; }
 /* ---------- Shop the look en móvil (perchero en carrusel) ----------
    Título, la foto del look a ancho completo, total y «Comprar el look» y el perchero (el mismo
    carrusel que la portada, con la ficha fija y la foto en miniatura). Al principio la página es
-   más larga que la pantalla; al bajar, la foto se convierte en la miniatura (src/ui/lookMorph.ts)
-   y al llegar al final la fila de compra + el perchero ocupan justo la pantalla (100dvh). */
+   más larga que la pantalla; la foto grande se queda fija en su sitio (sin animación) y al llegar
+   al final la fila de compra + el perchero ocupan justo la pantalla (100dvh). */
 .rack.has-info-carousel:not(.is-carousel) .rack__info { display: none; }
 .rack.has-info-carousel.is-carousel .rack__caption { display: none; }
-.look__shot, .look__morph { display: none; }
+.look__shot { display: none; }
 .look:has(> .look__rack.is-carousel) {
   --screen-h: 100svh;
   display: flex;
@@ -911,25 +911,16 @@ button { font: inherit; color: inherit; }
 .look:has(> .look__rack.is-carousel) .look__subtitle { display: none; }
 .look:has(> .look__rack.is-carousel) .look__intro { display: contents; } /* título, foto y compra, en columna */
 .look:has(> .look__rack.is-carousel) .look__title { margin-top: 6px; font-size: 30px; }
-/* Hueco de la foto grande: a ancho completo; la imagen que se ve es .look__morph, encima */
+/* Foto grande: a ancho completo */
 .look:has(> .look__rack.is-carousel) .look__shot {
   display: block;
+  width: calc(100% + 2 * var(--gutter));
+  max-width: none;
   margin: 0 calc(-1 * var(--gutter));
   aspect-ratio: 4 / 5;
-}
-.look__morph.is-on {
-  display: block;
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 15; /* bajo la cabecera fija (20) */
   object-fit: cover;
   object-position: 50% 30%;
-  border-radius: 2px;
-  cursor: pointer;
-  will-change: transform, width, height;
 }
-body.has-look-morph .rack__info-thumb { visibility: hidden; } /* la que se ve es la copia que viaja */
 /* El perchero: de lado a lado y con el alto justo para que, con la fila de compra, llene la
    pantalla bajo la cabecera. Como en la portada: el raíl arriba y, si sobra alto, más sombra. */
 .look__rack.is-carousel {
